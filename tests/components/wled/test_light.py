@@ -3,16 +3,20 @@ import json
 from unittest.mock import MagicMock
 
 import pytest
-from wled import Device as WLEDDevice, WLEDConnectionError, WLEDError
+from pytest_unordered import unordered
+from wled import Device as WLEDDevice, LightCapability, WLEDConnectionError, WLEDError
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
+    ATTR_COLOR_MODE,
     ATTR_EFFECT,
     ATTR_HS_COLOR,
     ATTR_RGB_COLOR,
     ATTR_RGBW_COLOR,
+    ATTR_SUPPORTED_COLOR_MODES,
     ATTR_TRANSITION,
     DOMAIN as LIGHT_DOMAIN,
+    ColorMode,
 )
 from homeassistant.components.wled.const import CONF_KEEP_MASTER_LIGHT, SCAN_INTERVAL
 from homeassistant.const import (
@@ -395,3 +399,48 @@ async def test_single_segment_with_keep_master_light(
     state = hass.states.get("light.wled_rgb_light_master")
     assert state
     assert state.state == STATE_ON
+
+
+@pytest.mark.parametrize("mock_wled", ["wled/rgbw.json"], indirect=True)
+@pytest.mark.parametrize(
+    "capabilities,color_modes",
+    [
+        (0, [ColorMode.ONOFF]),
+        (1, [ColorMode.RGB]),
+        (2, [ColorMode.BRIGHTNESS]),
+        (3, [ColorMode.RGB]),
+        (4, [ColorMode.COLOR_TEMP]),
+        (5, [ColorMode.RGBWW]),
+        (6, [ColorMode.COLOR_TEMP]),
+        (7, [ColorMode.RGB, ColorMode.COLOR_TEMP]),
+        (8, [ColorMode.BRIGHTNESS]),
+        (9, [ColorMode.RGBW]),
+        (10, [ColorMode.BRIGHTNESS]),
+        (11, [ColorMode.RGBW]),
+        (12, [ColorMode.COLOR_TEMP, ColorMode.WHITE]),
+        (13, [ColorMode.RGBW, ColorMode.COLOR_TEMP]),
+        (14, [ColorMode.COLOR_TEMP, ColorMode.WHITE]),
+        (15, [ColorMode.RGBW, ColorMode.COLOR_TEMP]),
+    ],
+)
+async def test_segment_light_capabilities(
+    hass: HomeAssistant,
+    mock_wled: MagicMock,
+    mock_config_entry: MockConfigEntry,
+    capabilities: LightCapability,
+    color_modes: list[ColorMode],
+) -> None:
+    """Test segment light capabilities of WLED lights."""
+    update: WLEDDevice = mock_wled.update.return_value
+    update.info.leds.segment_light_capabilities = [LightCapability(capabilities)]
+
+    mock_config_entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    state = hass.states.get("light.wled_rgbw_light")
+    assert state
+    assert state.state == STATE_ON
+    assert state.attributes.get(ATTR_COLOR_MODE) == color_modes[0]
+    assert state.attributes.get(ATTR_SUPPORTED_COLOR_MODES) == unordered(color_modes)
