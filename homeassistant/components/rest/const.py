@@ -26,3 +26,13 @@ REST = "rest"
 REST_DATA = "rest_data"
 
 METHODS = ["POST", "GET"]
+
+XML_MIME_TYPES = (
+    "application/atom+xml",
+    "application/rdf+xml",
+    "application/rss+xml",
+    "application/x-rss+xml",
+    "application/xhtml+xml",
+    "application/xml",
+    "text/xml",
+)

@@ -3,8 +3,11 @@ from __future__ import annotations
 
 import logging
 import ssl
+from xml.parsers.expat import ExpatError
 
+from jsonpath import jsonpath
 import voluptuous as vol
+import xmltodict
 
 from homeassistant.components.binary_sensor import (
     DOMAIN as BINARY_SENSOR_DOMAIN,
@@ -23,13 +26,19 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import PlatformNotReady
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.json import json_dumps, json_loads
 from homeassistant.helpers.template import Template
 from homeassistant.helpers.template_entity import TemplateEntity
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from . import async_get_config_and_coordinator, create_rest_data_from_config
-from .const import DEFAULT_BINARY_SENSOR_NAME
+from .const import (
+    CONF_JSON_ATTRS,
+    CONF_JSON_ATTRS_PATH,
+    DEFAULT_BINARY_SENSOR_NAME,
+    XML_MIME_TYPES,
+)
 from .data import RestData
 from .entity import RestEntity
 from .schema import BINARY_SENSOR_SCHEMA, RESOURCE_SCHEMA
@@ -119,20 +128,68 @@ class RestBinarySensor(RestEntity, TemplateEntity, BinarySensorEntity):
         self._value_template: Template | None = config.get(CONF_VALUE_TEMPLATE)
         if (value_template := self._value_template) is not None:
             value_template.hass = hass
+        self._json_attrs = config.get(CONF_JSON_ATTRS)
+        self._json_attrs_path = config.get(CONF_JSON_ATTRS_PATH)
 
         self._attr_device_class = config.get(CONF_DEVICE_CLASS)
 
     def _update_from_rest_data(self) -> None:
         """Update state from the rest data."""
-        if self.rest.data is None:
+        response = self.rest.data
+        _LOGGER.debug("Data fetched from resource: %s", response)
+
+        if response is None:
             self._attr_is_on = False
             return
 
-        response = self.rest.data
+        if self.rest.headers is not None:
+            # If the http request failed, headers will be None
+            content_type = self.rest.headers.get("content-type")
+
+            if content_type and content_type.startswith(XML_MIME_TYPES):
+                try:
+                    response = json_dumps(xmltodict.parse(response))
+                    _LOGGER.debug("JSON converted from XML: %s", response)
+                except ExpatError:
+                    _LOGGER.debug(
+                        "REST xml result could not be parsed and converted to JSON."
+                        " Erroneous XML: %s",
+                        response,
+                    )
+
+        if self._json_attrs:
+            if response:
+                try:
+                    json_dict = json_loads(response)
+                    if self._json_attrs_path is not None:
+                        json_dict = jsonpath(json_dict, self._json_attrs_path)
+                    # jsonpath will always store the result in json_dict[0]
+                    # so the next line happens to work exactly as needed to
+                    # find the result
+                    if isinstance(json_dict, list):
+                        json_dict = json_dict[0]
+                    if isinstance(json_dict, dict):
+                        self._attr_extra_state_attributes = {
+                            k: json_dict[k] for k in self._json_attrs if k in json_dict
+                        }
+                    else:
+                        _LOGGER.warning(
+                            "JSON result was not a dictionary"
+                            " or list with 0th element a dictionary"
+                        )
+                except ValueError:
+                    _LOGGER.debug(
+                        "REST result could not be parsed as JSON."
+                        " Erroneous JSON: %s",
+                        response,
+                    )
+
+            else:
+                _LOGGER.debug("Empty reply found when expecting JSON data")
 
         if self._value_template is not None:
             response = self._value_template.async_render_with_possible_json_value(
-                self.rest.data, False
+                response, False
             )
 
         try:
