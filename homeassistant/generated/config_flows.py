@@ -303,6 +303,7 @@ FLOWS = {
         "mystrom",
         "nam",
         "nanoleaf",
+        "nasweb",
         "neato",
         "nest",
         "netatmo",

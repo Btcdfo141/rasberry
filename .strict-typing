@@ -236,6 +236,7 @@ homeassistant.components.mqtt.*
 homeassistant.components.mysensors.*
 homeassistant.components.nam.*
 homeassistant.components.nanoleaf.*
+homeassistant.components.nasweb.*
 homeassistant.components.neato.*
 homeassistant.components.nest.*
 homeassistant.components.netatmo.*
