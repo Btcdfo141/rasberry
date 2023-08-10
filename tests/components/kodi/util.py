@@ -38,7 +38,7 @@ TEST_DISCOVERY_WO_UUID = zeroconf.ZeroconfServiceInfo(
 
 
 TEST_IMPORT = {
-    "name": "name",
+    "name": None,
     "host": "1.1.1.1",
     "port": 8080,
     "ws_port": 9090,
@@ -50,13 +50,21 @@ TEST_IMPORT = {
 
 
 def get_kodi_connection(
-    host, port, ws_port, username, password, ssl=False, timeout=5, session=None
+    # pylint: disable=unused-argument
+    host,
+    port,
+    ws_port,
+    username,
+    password,
+    ssl=False,
+    timeout=5,
+    session=None,
 ):
     """Get Kodi connection."""
     if ws_port is None:
         return MockConnection()
-    else:
-        return MockWSConnection()
+
+    return MockWSConnection()
 
 
 class MockConnection:
@@ -106,7 +114,7 @@ class MockWSConnection:
     @property
     def can_subscribe(self):
         """Mock can_subscribe."""
-        return False
+        return True
 
     async def close(self):
         """Mock close."""

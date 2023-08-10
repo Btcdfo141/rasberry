@@ -9,7 +9,6 @@ import re
 from typing import Any, Concatenate, ParamSpec, TypeVar
 
 from jsonrpc_base.jsonrpc import ProtocolError, TransportError
-from pykodi import CannotConnectError
 import voluptuous as vol
 
 from homeassistant.components import media_source
@@ -36,17 +35,11 @@ from homeassistant.const import (
     CONF_TIMEOUT,
     CONF_TYPE,
     CONF_USERNAME,
-    EVENT_HOMEASSISTANT_STARTED,
 )
-from homeassistant.core import CoreState, HomeAssistant, callback
-from homeassistant.helpers import (
-    config_validation as cv,
-    device_registry as dr,
-    entity_platform,
-)
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import config_validation as cv, entity_platform
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.network import is_internal_request
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 import homeassistant.util.dt as dt_util
@@ -57,10 +50,10 @@ from .browse_media import (
     library_payload,
     media_source_content_filter,
 )
+from .connection_manager import KodiConnectionClient, KodiConnectionManager
 from .const import (
     CONF_WS_PORT,
     DATA_CONNECTION,
-    DATA_KODI,
     DEFAULT_PORT,
     DEFAULT_SSL,
     DEFAULT_TIMEOUT,
@@ -172,7 +165,7 @@ def find_matching_config_entries_for_host(hass, host):
 async def async_setup_platform(
     hass: HomeAssistant,
     config: ConfigType,
-    async_add_entities: AddEntitiesCallback,
+    _async_add_entities: AddEntitiesCallback,
     discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
     """Set up the Kodi platform."""
@@ -220,13 +213,12 @@ async def async_setup_entry(
     )
 
     data = hass.data[DOMAIN][config_entry.entry_id]
-    connection = data[DATA_CONNECTION]
-    kodi = data[DATA_KODI]
+    connman = data[DATA_CONNECTION]
     name = config_entry.data[CONF_NAME]
     if (uid := config_entry.unique_id) is None:
         uid = config_entry.entry_id
 
-    entity = KodiEntity(connection, kodi, name, uid)
+    entity = KodiEntity(connman, name, uid)
     async_add_entities([entity])
 
 
@@ -256,7 +248,7 @@ def cmd(
     return wrapper
 
 
-class KodiEntity(MediaPlayerEntity):
+class KodiEntity(KodiConnectionClient, MediaPlayerEntity):
     """Representation of a XBMC/Kodi device."""
 
     _attr_has_entity_name = True
@@ -278,20 +270,34 @@ class KodiEntity(MediaPlayerEntity):
         | MediaPlayerEntityFeature.VOLUME_STEP
     )
 
-    def __init__(self, connection, kodi, name, uid):
+    def __init__(self, connman: KodiConnectionManager, name: str, uid: str) -> None:
         """Initialize the Kodi entity."""
-        self._connection = connection
-        self._kodi = kodi
+        super().__init__(
+            connman,
+            {
+                "Player.OnPause": self.async_on_speed_event,
+                "Player.OnPlay": self.async_on_speed_event,
+                "Player.OnAVStart": self.async_on_speed_event,
+                "Player.OnAVChange": self.async_on_speed_event,
+                "Player.OnResume": self.async_on_speed_event,
+                "Player.OnSpeedChanged": self.async_on_speed_event,
+                "Player.OnSeek": self.async_on_speed_event,
+                "Player.OnStop": self.async_on_stop,
+                "Application.OnVolumeChanged": self.async_on_volume_changed,
+                "Other.OnKeyPress": self.async_on_key_press,
+            },
+        )
+        self._kodi = connman.kodi
         self._unique_id = uid
         self._device_id = None
         self._players = None
-        self._properties = {}
-        self._item = {}
-        self._app_properties = {}
+        self._properties: dict = {}
+        self._item: dict = {}
+        self._app_properties: dict = {}
         self._media_position_updated_at = None
         self._media_position = None
-        self._connect_error = False
 
+        self._conf_name = name
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, uid)},
             manufacturer="Kodi",
@@ -315,7 +321,9 @@ class KodiEntity(MediaPlayerEntity):
         return not self._players
 
     @callback
-    def async_on_speed_event(self, sender, data):
+    def async_on_speed_event(
+        self, sender: Any, data: Any
+    ):  # pylint: disable=unused-argument
         """Handle player changes between playing and paused."""
         self._properties["speed"] = data["player"]["speed"]
 
@@ -329,7 +337,7 @@ class KodiEntity(MediaPlayerEntity):
         self.async_schedule_update_ha_state(force_refresh)
 
     @callback
-    def async_on_stop(self, sender, data):
+    def async_on_stop(self, sender: Any, data: Any):  # pylint: disable=unused-argument
         """Handle the stop of the player playback."""
         # Prevent stop notifications which are sent after quit notification
         if self._kodi_is_off:
@@ -339,7 +347,9 @@ class KodiEntity(MediaPlayerEntity):
         self.async_write_ha_state()
 
     @callback
-    def async_on_volume_changed(self, sender, data):
+    def async_on_volume_changed(
+        self, sender: Any, data: Any
+    ):  # pylint: disable=unused-argument
         """Handle the volume changes."""
         self._app_properties["volume"] = data["volume"]
         self._app_properties["muted"] = data["muted"]
@@ -359,16 +369,6 @@ class KodiEntity(MediaPlayerEntity):
             },
         )
 
-    async def async_on_quit(self, sender, data):
-        """Reset the player state on quit action."""
-        await self._clear_connection()
-
-    async def _clear_connection(self, close=True):
-        self._reset_state()
-        self.async_write_ha_state()
-        if close:
-            await self._connection.close()
-
     @property
     def unique_id(self):
         """Return the unique id of the device."""
@@ -383,155 +383,69 @@ class KodiEntity(MediaPlayerEntity):
         if self._no_active_players:
             return MediaPlayerState.IDLE
 
-        if self._properties["speed"] == 0:
+        # On first connect, if Kodi already plays any media,
+        # self_properties might be empty
+        if self._properties and self._properties["speed"] == 0:
             return MediaPlayerState.PAUSED
 
         return MediaPlayerState.PLAYING
 
-    async def async_added_to_hass(self) -> None:
-        """Connect the websocket if needed."""
-        if not self._connection.can_subscribe:
-            return
-
-        if self._connection.connected:
-            await self._on_ws_connected()
-
-        async def start_watchdog(event=None):
-            """Start websocket watchdog."""
-            await self._async_connect_websocket_if_disconnected()
-            self.async_on_remove(
-                async_track_time_interval(
-                    self.hass,
-                    self._async_connect_websocket_if_disconnected,
-                    WEBSOCKET_WATCHDOG_INTERVAL,
-                )
-            )
-
-        # If Home Assistant is already in a running state, start the watchdog
-        # immediately, else trigger it after Home Assistant has finished starting.
-        if self.hass.state == CoreState.running:
-            await start_watchdog()
-        else:
-            self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, start_watchdog)
-
-    async def _on_ws_connected(self):
-        """Call after ws is connected."""
-        self._connect_error = False
-        self._register_ws_callbacks()
-
-        version = (await self._kodi.get_application_properties(["version"]))["version"]
-        sw_version = f"{version['major']}.{version['minor']}"
-        dev_reg = dr.async_get(self.hass)
-        device = dev_reg.async_get_device(identifiers={(DOMAIN, self.unique_id)})
-        dev_reg.async_update_device(device.id, sw_version=sw_version)
-        self._device_id = device.id
-
-        self.async_schedule_update_ha_state(True)
-
-    async def _async_ws_connect(self):
-        """Connect to Kodi via websocket protocol."""
-        try:
-            await self._connection.connect()
-            await self._on_ws_connected()
-        except (TransportError, CannotConnectError):
-            if not self._connect_error:
-                self._connect_error = True
-                _LOGGER.warning("Unable to connect to Kodi via websocket")
-            await self._clear_connection(False)
-        else:
-            self._connect_error = False
-
-    async def _ping(self):
-        try:
-            await self._kodi.ping()
-        except (TransportError, CannotConnectError):
-            if not self._connect_error:
-                self._connect_error = True
-                _LOGGER.warning("Unable to ping Kodi via websocket")
-            await self._clear_connection()
-        else:
-            self._connect_error = False
-
-    async def _async_connect_websocket_if_disconnected(self, *_):
-        """Reconnect the websocket if it fails."""
-        if not self._connection.connected:
-            await self._async_ws_connect()
-        else:
-            await self._ping()
-
-    @callback
-    def _register_ws_callbacks(self):
-        self._connection.server.Player.OnPause = self.async_on_speed_event
-        self._connection.server.Player.OnPlay = self.async_on_speed_event
-        self._connection.server.Player.OnAVStart = self.async_on_speed_event
-        self._connection.server.Player.OnAVChange = self.async_on_speed_event
-        self._connection.server.Player.OnResume = self.async_on_speed_event
-        self._connection.server.Player.OnSpeedChanged = self.async_on_speed_event
-        self._connection.server.Player.OnSeek = self.async_on_speed_event
-        self._connection.server.Player.OnStop = self.async_on_stop
-        self._connection.server.Application.OnVolumeChanged = (
-            self.async_on_volume_changed
-        )
-        self._connection.server.Other.OnKeyPress = self.async_on_key_press
-        self._connection.server.System.OnQuit = self.async_on_quit
-        self._connection.server.System.OnRestart = self.async_on_quit
-        self._connection.server.System.OnSleep = self.async_on_quit
-
     @cmd
     async def async_update(self) -> None:
         """Retrieve latest state."""
-        if not self._connection.connected:
+        if not self._connman.connected:
             self._reset_state()
             return
 
-        self._players = await self._kodi.get_players()
+        # Any _kodi.get call might fail if connection is lost
+        try:
+            self._players = await self._kodi.get_players()
 
-        if self._kodi_is_off:
+            if self._kodi_is_off:
+                self._reset_state()
+                return
+
+            if self._players:
+                self._app_properties = await self._kodi.get_application_properties(
+                    ["volume", "muted"]
+                )
+
+                self._properties = await self._kodi.get_player_properties(
+                    self._players[0], ["time", "totaltime", "speed", "live"]
+                )
+
+                position = self._properties["time"]
+                if self._media_position != position:
+                    self._media_position_updated_at = dt_util.utcnow()
+                    self._media_position = position
+
+                self._item = await self._kodi.get_playing_item_properties(
+                    self._players[0],
+                    [
+                        "title",
+                        "file",
+                        "uniqueid",
+                        "thumbnail",
+                        "artist",
+                        "albumartist",
+                        "showtitle",
+                        "album",
+                        "season",
+                        "episode",
+                    ],
+                )
+            else:
+                self._reset_state([])
+        except TransportError:
             self._reset_state()
             return
-
-        if self._players:
-            self._app_properties = await self._kodi.get_application_properties(
-                ["volume", "muted"]
-            )
-
-            self._properties = await self._kodi.get_player_properties(
-                self._players[0], ["time", "totaltime", "speed", "live"]
-            )
-
-            position = self._properties["time"]
-            if self._media_position != position:
-                self._media_position_updated_at = dt_util.utcnow()
-                self._media_position = position
-
-            self._item = await self._kodi.get_playing_item_properties(
-                self._players[0],
-                [
-                    "title",
-                    "file",
-                    "uniqueid",
-                    "thumbnail",
-                    "artist",
-                    "albumartist",
-                    "showtitle",
-                    "album",
-                    "season",
-                    "episode",
-                ],
-            )
-        else:
-            self._reset_state([])
-
-    @property
-    def should_poll(self) -> bool:
-        """Return True if entity has to be polled for state."""
-        return not self._connection.can_subscribe
 
     @property
     def volume_level(self):
         """Volume level of the media player (0..1)."""
         if "volume" in self._app_properties:
             return int(self._app_properties["volume"]) / 100.0
+        return 0
 
     @property
     def is_volume_muted(self):
