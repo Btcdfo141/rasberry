@@ -26,7 +26,11 @@ class ZigbeeGPIO(enum.IntEnum):
     RESET = 25  # PCB 41
 
 
-GPIO_PINS_WITH_PULLUP = [ZigbeeGPIO.BOOT, ZigbeeGPIO.RESET]
+# Pin states on a properly installed CM4
+RUNNING_PIN_STATES = {
+    ZigbeeGPIO.BOOT: 1,
+    ZigbeeGPIO.RESET: 1,
+}
 
 
 def _read_gpio_pins(pins: list[int]) -> dict[int, bool]:
@@ -72,10 +76,9 @@ async def async_validate_gpio_states(hass: HomeAssistant) -> bool:
     """Validate the state of the GPIO pins."""
     try:
         pin_states = await hass.async_add_executor_job(
-            _read_gpio_pins_stable, GPIO_PINS_WITH_PULLUP
+            _read_gpio_pins_stable, list(RUNNING_PIN_STATES)
         )
     except PinStatesUnstable:
         return False
 
-    # All pins with a hardware pullup must be high
-    return all(pin_states.values())
+    return pin_states == RUNNING_PIN_STATES
