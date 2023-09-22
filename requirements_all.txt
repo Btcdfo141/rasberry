@@ -2700,7 +2700,7 @@ waterfurnace==1.1.0
 webexteamssdk==1.1.1
 
 # homeassistant.components.nasweb
-webio-api==0.1.4
+webio-api==0.1.8
 
 # homeassistant.components.assist_pipeline
 webrtc-noise-gain==1.2.3
