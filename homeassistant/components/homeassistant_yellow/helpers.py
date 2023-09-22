@@ -13,23 +13,27 @@ class PinStatesUnstable(Exception):
     """The state of the GPIO pins is unstable."""
 
 
-class ZigbeeGPIO(enum.IntEnum):
+class YellowGPIO(enum.IntEnum):
     """Yellow MGM210P GPIO pins."""
 
-    SWDIO = 6  # PCB 30
-    SWCLK = 7  # PCB 37
-    TXD = 8  # PCB 39
-    RXD = 9  # PCB 40
-    CTS = 10  # PCB 44
-    RTS = 11  # PCB 38
-    BOOT = 24  # PCB 45
-    RESET = 25  # PCB 41
+    RADIO_SWDIO = 6
+    RADIO_SWCLK = 7
+    RADIO_TXD = 8
+    RADIO_RXD = 9
+    RADIO_CTS = 10
+    RADIO_RTS = 11
+    RADIO_BOOT = 24
+    RADIO_RESET = 25
+    SW_USER = 26
+    SW_WIPE = 27
 
 
 # Pin states on a properly installed CM4
 RUNNING_PIN_STATES = {
-    ZigbeeGPIO.BOOT: 1,
-    ZigbeeGPIO.RESET: 1,
+    YellowGPIO.RADIO_BOOT: 1,
+    YellowGPIO.RADIO_RESET: 1,
+    YellowGPIO.SW_USER: 1,
+    YellowGPIO.SW_WIPE: 1,
 }
 
 
