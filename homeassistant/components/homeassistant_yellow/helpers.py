@@ -32,8 +32,6 @@ class YellowGPIO(enum.IntEnum):
 RUNNING_PIN_STATES = {
     YellowGPIO.RADIO_BOOT: 1,
     YellowGPIO.RADIO_RESET: 1,
-    YellowGPIO.SW_USER: 1,
-    YellowGPIO.SW_WIPE: 1,
 }
 
 
