@@ -34,6 +34,9 @@ RUNNING_PIN_STATES = {
     YellowGPIO.RADIO_RESET: 1,
 }
 
+GPIO_READ_ATTEMPTS = 5
+GPIO_READ_DELAY_S = 0.01
+
 
 def _read_gpio_pins(pins: list[int]) -> dict[int, bool]:
     """Read the state of the given GPIO pins."""
@@ -57,15 +60,13 @@ def _read_gpio_pins(pins: list[int]) -> dict[int, bool]:
     return values
 
 
-def _read_gpio_pins_stable(
-    pins: list[int], *, repeat: int = 5, delay: float = 0.01
-) -> dict[int, bool]:
+def _read_gpio_pins_stable(pins: list[int]) -> dict[int, bool]:
     """Read the state of the given GPIO pins and ensure the states are stable."""
 
     values = _read_gpio_pins(pins)
 
-    for _ in range(repeat - 1):
-        time.sleep(delay)
+    for _ in range(GPIO_READ_ATTEMPTS - 1):
+        time.sleep(GPIO_READ_DELAY_S)
         new_values = _read_gpio_pins(pins)
 
         if new_values != values:
