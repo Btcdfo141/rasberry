@@ -4,9 +4,13 @@ from __future__ import annotations
 import enum
 import time
 
-import gpiod
-
 from homeassistant.core import HomeAssistant
+
+try:
+    import gpiod
+except ImportError:
+    # libgpiod's Python bindings are not available in all OS builds
+    gpiod = None
 
 
 class PinStatesUnstable(Exception):
@@ -40,19 +44,14 @@ GPIO_READ_DELAY_S = 0.01
 
 def _read_gpio_pins(pins: list[int]) -> dict[int, bool]:
     """Read the state of the given GPIO pins."""
-    chip = gpiod.chip(0, gpiod.chip.OPEN_BY_NUMBER)
-
-    config = gpiod.line_request()
-    config.consumer = "core-yellow"
-    config.request_type = gpiod.line_request.DIRECTION_INPUT
-
+    chip = gpiod.Chip("gpiochip0", gpiod.Chip.OPEN_BY_NAME)
     values = {}
 
     for pin in pins:
         line = chip.get_line(pin)
 
         try:
-            line.request(config)
+            line.request(consumer="core-yellow", type=gpiod.LINE_REQ_DIR_IN)
             values[pin] = line.get_value()
         finally:
             line.release()
@@ -77,6 +76,9 @@ def _read_gpio_pins_stable(pins: list[int]) -> dict[int, bool]:
 
 async def async_validate_gpio_states(hass: HomeAssistant) -> bool:
     """Validate the state of the GPIO pins."""
+    if gpiod is None:
+        return True
+
     try:
         pin_states = await hass.async_add_executor_job(
             _read_gpio_pins_stable, list(RUNNING_PIN_STATES)

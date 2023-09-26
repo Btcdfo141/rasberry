@@ -5,6 +5,5 @@
   "config_flow": false,
   "dependencies": ["hardware", "hassio", "homeassistant_hardware"],
   "documentation": "https://www.home-assistant.io/integrations/homeassistant_yellow",
-  "integration_type": "hardware",
-  "requirements": ["gpiod==1.5.4"]
+  "integration_type": "hardware"
 }
