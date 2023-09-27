@@ -4,13 +4,9 @@ from __future__ import annotations
 import enum
 import time
 
-from homeassistant.core import HomeAssistant
+import gpiod
 
-try:
-    import gpiod
-except ImportError:
-    # libgpiod's Python bindings are not available in all OS builds
-    gpiod = None
+from homeassistant.core import HomeAssistant
 
 
 class PinStatesUnstable(Exception):
@@ -34,8 +30,8 @@ class YellowGPIO(enum.IntEnum):
 
 # Pin states on a properly installed CM4
 RUNNING_PIN_STATES = {
-    YellowGPIO.RADIO_BOOT: 1,
-    YellowGPIO.RADIO_RESET: 1,
+    YellowGPIO.RADIO_BOOT: gpiod.line.Value.ACTIVE,
+    YellowGPIO.RADIO_RESET: gpiod.line.Value.ACTIVE,
 }
 
 GPIO_READ_ATTEMPTS = 5
@@ -44,19 +40,13 @@ GPIO_READ_DELAY_S = 0.01
 
 def _read_gpio_pins(pins: list[int]) -> dict[int, bool]:
     """Read the state of the given GPIO pins."""
-    chip = gpiod.Chip("gpiochip0", gpiod.Chip.OPEN_BY_NAME)
-    values = {}
 
-    for pin in pins:
-        line = chip.get_line(pin)
-
-        try:
-            line.request(consumer="core-yellow", type=gpiod.LINE_REQ_DIR_IN)
-            values[pin] = line.get_value()
-        finally:
-            line.release()
-
-    return values
+    with gpiod.request_lines(
+        path="/dev/gpiochip0",
+        consumer="core-yellow",
+        config={tuple(pins): gpiod.LineSettings(direction=gpiod.line.Direction.INPUT)},
+    ) as request:
+        return dict(zip(pins, request.get_values()))
 
 
 def _read_gpio_pins_stable(pins: list[int]) -> dict[int, bool]:
