@@ -102,8 +102,8 @@
   },
   "issues": {
     "cm4_unseated": {
-      "title": "Raspberry Pi Compute Module not plugged in all the way",
-      "description": "Your Raspberry Pi Compute Module does not appear to be plugged in all the way. Carefully disassemble the Yellow and make sure the Compute Module is securely installed."
+      "title": "Raspberry Pi Compute Module is not firmly installed",
+      "description": "Your Raspberry Pi Compute Module does not appear to be plugged in all the way and some pins are disconnected. Carefully disassemble the Yellow and securely click the Compute Module into place."
     }
   }
 }
