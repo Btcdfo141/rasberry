@@ -1,5 +1,5 @@
 """Test the Home Assistant Yellow integration."""
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -10,6 +10,16 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 
 from tests.common import MockConfigEntry, MockModule, mock_integration
+
+
+@pytest.fixture(autouse=True)
+def mock_validate_gpio_pins() -> Mock:
+    """Mock away GPIO pin state validation."""
+    with patch(
+        "homeassistant.components.homeassistant_yellow.validate_gpio_pins",
+        return_value=True,
+    ) as mock_validate_gpio_pins:
+        yield mock_validate_gpio_pins
 
 
 @pytest.mark.parametrize(

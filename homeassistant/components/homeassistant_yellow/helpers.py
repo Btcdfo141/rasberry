@@ -4,8 +4,6 @@ from __future__ import annotations
 import enum
 import time
 
-import gpiod
-
 from homeassistant.core import HomeAssistant
 
 
@@ -30,8 +28,8 @@ class YellowGPIO(enum.IntEnum):
 
 # Pin states on a properly installed CM4
 RUNNING_PIN_STATES = {
-    YellowGPIO.RADIO_BOOT: gpiod.line.Value.ACTIVE,
-    YellowGPIO.RADIO_RESET: gpiod.line.Value.ACTIVE,
+    YellowGPIO.RADIO_BOOT: 1,
+    YellowGPIO.RADIO_RESET: 1,
 }
 
 GPIO_READ_ATTEMPTS = 5
@@ -40,6 +38,8 @@ GPIO_READ_DELAY_S = 0.01
 
 def _read_gpio_pins(pins: list[int]) -> dict[int, bool]:
     """Read the state of the given GPIO pins."""
+    # pylint: disable-next=import-outside-toplevel
+    import gpiod
 
     with gpiod.request_lines(
         path="/dev/gpiochip0",
@@ -66,9 +66,6 @@ def _read_gpio_pins_stable(pins: list[int]) -> dict[int, bool]:
 
 async def async_validate_gpio_states(hass: HomeAssistant) -> bool:
     """Validate the state of the GPIO pins."""
-    if gpiod is None:
-        return True
-
     try:
         pin_states = await hass.async_add_executor_job(
             _read_gpio_pins_stable, list(RUNNING_PIN_STATES)
