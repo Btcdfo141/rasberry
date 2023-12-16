@@ -13,13 +13,13 @@ from tests.common import MockConfigEntry, MockModule, mock_integration
 
 
 @pytest.fixture(autouse=True)
-def mock_validate_gpio_pins() -> Mock:
+def mock_validate_gpio_states() -> Mock:
     """Mock away GPIO pin state validation."""
     with patch(
-        "homeassistant.components.homeassistant_yellow.validate_gpio_pins",
+        "homeassistant.components.homeassistant_yellow.async_validate_gpio_states",
         return_value=True,
-    ) as mock_validate_gpio_pins:
-        yield mock_validate_gpio_pins
+    ) as mock_validate_gpio_states:
+        yield mock_validate_gpio_states
 
 
 @pytest.mark.parametrize(

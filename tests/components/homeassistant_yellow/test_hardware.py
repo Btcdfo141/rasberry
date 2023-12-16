@@ -10,6 +10,16 @@ from tests.common import MockConfigEntry, MockModule, mock_integration
 from tests.typing import WebSocketGenerator
 
 
+@pytest.fixture(autouse=True)
+def mock_async_validate_gpio_states():
+    """Mock GPIO pin state valdiation."""
+    with patch(
+        "homeassistant.components.homeassistant_yellow.async_validate_gpio_states",
+        return_value=True,
+    ):
+        yield
+
+
 async def test_hardware_info(
     hass: HomeAssistant, hass_ws_client: WebSocketGenerator, addon_store_info
 ) -> None:
