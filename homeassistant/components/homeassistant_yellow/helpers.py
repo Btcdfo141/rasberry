@@ -41,12 +41,18 @@ def _read_gpio_pins(pins: list[int]) -> dict[int, bool]:
     # pylint: disable-next=import-outside-toplevel
     import gpiod
 
-    with gpiod.request_lines(
-        path="/dev/gpiochip0",
-        consumer="core-yellow",
-        config={tuple(pins): gpiod.LineSettings(direction=gpiod.line.Direction.INPUT)},
-    ) as request:
-        return dict(zip(pins, request.get_values()))
+    chip = gpiod.chip("/dev/gpiochip0", gpiod.chip.OPEN_BY_PATH)
+    lines = chip.get_lines(pins)
+
+    config = gpiod.line_request()
+    config.consumer = "core-yellow"
+    config.request_type = gpiod.line_request.DIRECTION_INPUT
+
+    try:
+        lines.request(config)
+        return {p: bool(v) for p, v in zip(pins, lines.get_values())}
+    finally:
+        lines.release()
 
 
 def _read_gpio_pins_stable(pins: list[int]) -> dict[int, bool]:
