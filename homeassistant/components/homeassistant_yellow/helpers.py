@@ -4,6 +4,8 @@ from __future__ import annotations
 import enum
 import time
 
+import usb
+
 from homeassistant.core import HomeAssistant
 
 
@@ -34,6 +36,15 @@ RUNNING_PIN_STATES = {
 
 GPIO_READ_ATTEMPTS = 5
 GPIO_READ_DELAY_S = 0.01
+
+
+# Bus 001 Device 001: ID 1d6b:0002
+CM4_USB_HUB_VENDOR = 0x1D6B
+CM4_USB_HUB_PRODUCT = 0x0002
+
+# Bus 001 Device 002: ID 1a40:0101
+YELLOW_USB_HUB_VENDOR = 0x1A40
+YELLOW_USB_HUB_PRODUCT = 0x0101
 
 
 def _read_gpio_pins(pins: list[int]) -> dict[int, bool]:
@@ -80,3 +91,37 @@ async def async_validate_gpio_states(hass: HomeAssistant) -> bool:
         return False
 
     return pin_states == RUNNING_PIN_STATES
+
+
+def validate_usb_hub_present() -> bool:
+    """Validate that the USB hub is present."""
+    root_hub = usb.core.find(
+        # The root hub has no parent
+        parent=None,
+        idVendor=CM4_USB_HUB_VENDOR,
+        idProduct=CM4_USB_HUB_PRODUCT,
+    )
+
+    # This really should not be possible
+    if root_hub is None:
+        return False
+
+    yellow_hub = usb.core.find(
+        # The Yellow's two-port hub is a child of the pi's root hub
+        parent=root_hub,
+        idVendor=YELLOW_USB_HUB_VENDOR,
+        idProduct=YELLOW_USB_HUB_PRODUCT,
+    )
+
+    return yellow_hub is not None
+
+
+async def async_validate_hardware_consistent(hass: HomeAssistant) -> bool:
+    """Validate the hardware is consistent with a properly installed CM4."""
+    if not validate_usb_hub_present():
+        return False
+
+    if not await async_validate_gpio_states(hass):
+        return False
+
+    return True

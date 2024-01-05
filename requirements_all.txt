@@ -2272,6 +2272,9 @@ pyunifiprotect==4.22.3
 # homeassistant.components.uptimerobot
 pyuptimerobot==22.2.0
 
+# homeassistant.components.homeassistant_yellow
+pyusb==1.2.1
+
 # homeassistant.components.keyboard
 # pyuserinput==0.1.11
 

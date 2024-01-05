@@ -13,7 +13,7 @@ from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import issue_registry as ir
 
 from .const import DOMAIN, RADIO_DEVICE, ZHA_HW_DISCOVERY_DATA
-from .helpers import async_validate_gpio_states
+from .helpers import async_validate_hardware_consistent
 
 ISSUE_CM4_UNSEATED = "cm4_unseated"
 
@@ -30,7 +30,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.async_create_task(hass.config_entries.async_remove(entry.entry_id))
         return False
 
-    if not await async_validate_gpio_states(hass):
+    if not await async_validate_hardware_consistent(hass):
         ir.async_create_issue(
             hass,
             domain=DOMAIN,
