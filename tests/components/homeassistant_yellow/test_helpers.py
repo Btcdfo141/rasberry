@@ -23,35 +23,22 @@ def mock_gpio_pin_states(pin_states: dict[int, list[bool]]):
 
     read_count = 0
 
-    def mock_request_lines(
-        config: dict[int | tuple[int, ...], gpiod.LineSettings], **kwargs
-    ):
-        all_pins = []
-
-        for pin_or_pins in config:
-            if isinstance(pin_or_pins, tuple):
-                all_pins.extend(pin_or_pins)
-            else:
-                all_pins.append(pin_or_pins)
-
+    def mock_get_lines(pins: list[int]):
         def mock_get_values() -> list[gpiod.line.Value]:
             nonlocal read_count
 
-            values = [pin_states[pin][read_count] for pin in all_pins]
+            values = [pin_states[pin][read_count] for pin in pins]
             read_count += 1
 
             return values
 
-        mock_request = MagicMock()
-        mock_request.get_values.side_effect = mock_get_values
-
         mock = MagicMock()
-        mock.__enter__ = MagicMock(return_value=mock_request)
+        mock.get_values.side_effect = mock_get_values
 
         return mock
 
     mock_gpiod = MagicMock()
-    mock_gpiod.request_lines = MagicMock(side_effect=mock_request_lines)
+    mock_gpiod.chip.return_value.get_lines = MagicMock(side_effect=mock_get_lines)
 
     with patch.dict("sys.modules", gpiod=mock_gpiod):
         yield
