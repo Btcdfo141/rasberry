@@ -10,6 +10,8 @@ import pytest
 from homeassistant.components.homeassistant_yellow.helpers import (
     YellowGPIO,
     async_validate_gpio_states,
+    async_validate_hardware_consistent,
+    validate_usb_hub_present,
 )
 from homeassistant.core import HomeAssistant
 
@@ -87,3 +89,43 @@ async def test_validate_gpio_pins(
     """Test validating GPIO pin states, success."""
     with mock_gpio_pin_states(states):
         assert (await async_validate_gpio_states(hass)) is result
+
+
+@pytest.mark.parametrize(
+    ("find_result", "result"),
+    [
+        (["hub1", "hub2"], True),
+        (["hub1", None], False),
+        ([None], False),
+    ],
+)
+def test_validate_usb_hub_present(find_result: list[bool], result: bool):
+    """Test validating USB hubs."""
+    with patch(
+        "homeassistant.components.homeassistant_yellow.helpers.usb.core.find",
+        side_effect=find_result,
+    ):
+        assert validate_usb_hub_present() is result
+
+
+@pytest.mark.parametrize(
+    ("hub_present", "gpio_valid", "result"),
+    [
+        (True, True, True),
+        (True, False, False),
+        (False, True, False),
+        (False, False, False),
+    ],
+)
+async def test_async_validate_hardware_consistent(
+    hub_present: bool, gpio_valid: bool, result: bool, hass: HomeAssistant
+):
+    """Test validating hardware consistency."""
+    with patch(
+        "homeassistant.components.homeassistant_yellow.helpers.validate_usb_hub_present",
+        return_value=hub_present,
+    ), patch(
+        "homeassistant.components.homeassistant_yellow.helpers.async_validate_gpio_states",
+        return_value=gpio_valid,
+    ):
+        assert (await async_validate_hardware_consistent(hass)) is result
