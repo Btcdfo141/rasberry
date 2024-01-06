@@ -85,7 +85,7 @@ def mock_gpio_pin_states(pin_states: dict[int, list[bool]]):
 )
 async def test_validate_gpio_pins(
     states: dict[YellowGPIO, list[int]], result: bool, hass: HomeAssistant
-):
+) -> None:
     """Test validating GPIO pin states, success."""
     with mock_gpio_pin_states(states):
         assert (await async_validate_gpio_states(hass)) is result
@@ -99,7 +99,7 @@ async def test_validate_gpio_pins(
         ([None], False),
     ],
 )
-def test_validate_usb_hub_present(find_result: list[bool], result: bool):
+def test_validate_usb_hub_present(find_result: list[bool], result: bool) -> None:
     """Test validating USB hubs."""
     with patch(
         "homeassistant.components.homeassistant_yellow.helpers.usb.core.find",
@@ -119,7 +119,7 @@ def test_validate_usb_hub_present(find_result: list[bool], result: bool):
 )
 async def test_async_validate_hardware_consistent(
     hub_present: bool, gpio_valid: bool, result: bool, hass: HomeAssistant
-):
+) -> None:
     """Test validating hardware consistency."""
     with patch(
         "homeassistant.components.homeassistant_yellow.helpers.validate_usb_hub_present",
