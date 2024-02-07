@@ -7,6 +7,7 @@ from typing import Any
 from aiohttp import ClientError
 from awesomeversion import AwesomeVersion
 from ttls.client import Twinkly
+from ttls.colours import TwinklyColour
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
@@ -29,6 +30,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util.color import color_rgb_to_rgbw, color_rgbw_to_rgb
 
 from .const import (
     DATA_CLIENT,
@@ -168,47 +170,33 @@ class TwinklyLight(LightEntity):
 
             await self._client.set_brightness(brightness)
 
+        color: TwinklyColour | None = None
         if (
             ATTR_RGBW_COLOR in kwargs
+            and self._attr_color_mode == ColorMode.RGBW
             and kwargs[ATTR_RGBW_COLOR] != self._attr_rgbw_color
         ):
-            await self._client.interview()
+            color = TwinklyColour(*kwargs[ATTR_RGBW_COLOR])
+        if (
+            ATTR_RGB_COLOR in kwargs
+            and self._attr_color_mode == ColorMode.RGB
+            and kwargs[ATTR_RGB_COLOR] != self._attr_rgb_color
+        ):
+            color = TwinklyColour(*kwargs[ATTR_RGB_COLOR])
+
+        if color:
             if LightEntityFeature.EFFECT & self.supported_features:
-                # Static color only supports rgb
-                await self._client.set_static_colour(
-                    (
-                        kwargs[ATTR_RGBW_COLOR][0],
-                        kwargs[ATTR_RGBW_COLOR][1],
-                        kwargs[ATTR_RGBW_COLOR][2],
-                    )
-                )
+                await self._client.set_static_colour(color)
                 await self._client.set_mode("color")
                 self._client.default_mode = "color"
             else:
-                await self._client.set_cycle_colours(
-                    (
-                        kwargs[ATTR_RGBW_COLOR][3],
-                        kwargs[ATTR_RGBW_COLOR][0],
-                        kwargs[ATTR_RGBW_COLOR][1],
-                        kwargs[ATTR_RGBW_COLOR][2],
-                    )
-                )
+                await self._client.set_cycle_colours(color)
                 await self._client.set_mode("movie")
                 self._client.default_mode = "movie"
-            self._attr_rgbw_color = kwargs[ATTR_RGBW_COLOR]
-
-        if ATTR_RGB_COLOR in kwargs and kwargs[ATTR_RGB_COLOR] != self._attr_rgb_color:
-            await self._client.interview()
-            if LightEntityFeature.EFFECT & self.supported_features:
-                await self._client.set_static_colour(kwargs[ATTR_RGB_COLOR])
-                await self._client.set_mode("color")
-                self._client.default_mode = "color"
+            if color.white is None:
+                self._attr_rgbw_color = color.as_tuple()
             else:
-                await self._client.set_cycle_colours(kwargs[ATTR_RGB_COLOR])
-                await self._client.set_mode("movie")
-                self._client.default_mode = "movie"
-
-            self._attr_rgb_color = kwargs[ATTR_RGB_COLOR]
+                self._attr_rgb_color = color.as_tuple()
 
         if (
             ATTR_EFFECT in kwargs
@@ -218,7 +206,6 @@ class TwinklyLight(LightEntity):
             if "id" not in self._current_movie or int(movie_id) != int(
                 self._current_movie["id"]
             ):
-                await self._client.interview()
                 await self._client.set_current_movie(int(movie_id))
                 await self._client.set_mode("movie")
                 self._client.default_mode = "movie"
@@ -234,6 +221,7 @@ class TwinklyLight(LightEntity):
         _LOGGER.debug("Updating '%s'", self._client.host)
 
         try:
+            await self._client.interview()
             self._attr_is_on = await self._client.is_on()
 
             brightness = await self._client.get_brightness()
@@ -271,9 +259,11 @@ class TwinklyLight(LightEntity):
                     },
                 )
 
+            await self.async_update_current_color()
             if LightEntityFeature.EFFECT & self.supported_features:
                 await self.async_update_movies()
                 await self.async_update_current_movie()
+            _LOGGER.debug("Current mode: %s", self._client.default_mode)
 
             if not self._attr_available:
                 _LOGGER.info("Twinkly '%s' is now available", self._client.host)
@@ -303,3 +293,27 @@ class TwinklyLight(LightEntity):
         _LOGGER.debug("Current movie: %s", current_movie)
         if current_movie and "id" in current_movie:
             self._current_movie = current_movie
+
+    async def async_update_current_color(self) -> None:
+        """Update the current active color."""
+        current_color = await self._client.get_current_colour()
+        if "white" not in current_color:
+            current_color["white"] = None
+
+        color = TwinklyColour(
+            current_color["red"],
+            current_color["green"],
+            current_color["blue"],
+            current_color["white"],
+        )
+        _LOGGER.debug("Current color: %s", color)
+        if self._attr_color_mode == ColorMode.RGBW:
+            if color.white is not None:
+                self._attr_rgbw_color = color.as_tuple()
+            else:
+                self._attr_rgbw_color = color_rgb_to_rgbw(*color.as_tuple())
+        elif self._attr_color_mode == ColorMode.RGB:
+            if color.white is not None:
+                self._attr_rgb_color = color_rgbw_to_rgb(*color.as_tuple())
+            else:
+                self._attr_rgb_color = color.as_tuple()
