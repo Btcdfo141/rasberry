@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
+from enum import Enum
 import logging
 from typing import cast
 
@@ -38,6 +40,7 @@ class BMWSensorEntityDescription(SensorEntityDescription):
     """Describes BMW sensor entity."""
 
     key_class: str | None = None
+    is_available: Callable[[MyBMWVehicle], bool] = lambda v: v.is_lsc_enabled
 
 
 SENSOR_TYPES: list[BMWSensorEntityDescription] = [
@@ -197,7 +200,7 @@ class BMWSensor(BMWBaseEntity, SensorEntity):
                 getattr(self.vehicle, self.entity_description.key_class),
                 self.entity_description.key,
             )
-        if isinstance(state, ValueWithUnit):
+        if isinstance(state, (ValueWithUnit, Enum)):
             state = state.value
         self._attr_native_value = cast(StateType, state)
         super()._handle_coordinator_update()

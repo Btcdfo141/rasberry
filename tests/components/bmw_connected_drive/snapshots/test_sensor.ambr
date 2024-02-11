@@ -29,6 +29,7 @@
     StateSnapshot({
       'attributes': ReadOnlyDict({
         'attribution': 'Data provided by MyBMW',
+        'device_class': 'battery',
         'friendly_name': 'iX xDrive50 Charging target',
         'unit_of_measurement': '%',
       }),
@@ -57,6 +58,7 @@
     StateSnapshot({
       'attributes': ReadOnlyDict({
         'attribution': 'Data provided by MyBMW',
+        'device_class': 'distance',
         'friendly_name': 'iX xDrive50 Mileage',
         'state_class': <SensorStateClass.TOTAL_INCREASING: 'total_increasing'>,
         'unit_of_measurement': <UnitOfLength.KILOMETERS: 'km'>,
@@ -71,6 +73,7 @@
     StateSnapshot({
       'attributes': ReadOnlyDict({
         'attribution': 'Data provided by MyBMW',
+        'device_class': 'distance',
         'friendly_name': 'iX xDrive50 Remaining range total',
         'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
         'unit_of_measurement': <UnitOfLength.KILOMETERS: 'km'>,
@@ -85,6 +88,7 @@
     StateSnapshot({
       'attributes': ReadOnlyDict({
         'attribution': 'Data provided by MyBMW',
+        'device_class': 'distance',
         'friendly_name': 'iX xDrive50 Remaining range electric',
         'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
         'unit_of_measurement': <UnitOfLength.KILOMETERS: 'km'>,
@@ -143,6 +147,7 @@
     StateSnapshot({
       'attributes': ReadOnlyDict({
         'attribution': 'Data provided by MyBMW',
+        'device_class': 'battery',
         'friendly_name': 'i4 eDrive40 Charging target',
         'unit_of_measurement': '%',
       }),
@@ -171,6 +176,7 @@
     StateSnapshot({
       'attributes': ReadOnlyDict({
         'attribution': 'Data provided by MyBMW',
+        'device_class': 'distance',
         'friendly_name': 'i4 eDrive40 Mileage',
         'state_class': <SensorStateClass.TOTAL_INCREASING: 'total_increasing'>,
         'unit_of_measurement': <UnitOfLength.KILOMETERS: 'km'>,
@@ -185,6 +191,7 @@
     StateSnapshot({
       'attributes': ReadOnlyDict({
         'attribution': 'Data provided by MyBMW',
+        'device_class': 'distance',
         'friendly_name': 'i4 eDrive40 Remaining range total',
         'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
         'unit_of_measurement': <UnitOfLength.KILOMETERS: 'km'>,
@@ -199,6 +206,7 @@
     StateSnapshot({
       'attributes': ReadOnlyDict({
         'attribution': 'Data provided by MyBMW',
+        'device_class': 'distance',
         'friendly_name': 'i4 eDrive40 Remaining range electric',
         'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
         'unit_of_measurement': <UnitOfLength.KILOMETERS: 'km'>,
@@ -232,6 +240,7 @@
     StateSnapshot({
       'attributes': ReadOnlyDict({
         'attribution': 'Data provided by MyBMW',
+        'device_class': 'distance',
         'friendly_name': 'M340i xDrive Mileage',
         'state_class': <SensorStateClass.TOTAL_INCREASING: 'total_increasing'>,
         'unit_of_measurement': <UnitOfLength.KILOMETERS: 'km'>,
@@ -246,6 +255,7 @@
     StateSnapshot({
       'attributes': ReadOnlyDict({
         'attribution': 'Data provided by MyBMW',
+        'device_class': 'distance',
         'friendly_name': 'M340i xDrive Remaining range total',
         'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
         'unit_of_measurement': <UnitOfLength.KILOMETERS: 'km'>,
@@ -260,6 +270,7 @@
     StateSnapshot({
       'attributes': ReadOnlyDict({
         'attribution': 'Data provided by MyBMW',
+        'device_class': 'distance',
         'friendly_name': 'M340i xDrive Remaining range fuel',
         'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
         'unit_of_measurement': <UnitOfLength.KILOMETERS: 'km'>,
@@ -274,6 +285,7 @@
     StateSnapshot({
       'attributes': ReadOnlyDict({
         'attribution': 'Data provided by MyBMW',
+        'device_class': 'volume',
         'friendly_name': 'M340i xDrive Remaining fuel',
         'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
         'unit_of_measurement': <UnitOfVolume.LITERS: 'L'>,
@@ -346,6 +358,7 @@
     StateSnapshot({
       'attributes': ReadOnlyDict({
         'attribution': 'Data provided by MyBMW',
+        'device_class': 'battery',
         'friendly_name': 'i3 (+ REX) Charging target',
         'unit_of_measurement': '%',
       }),
@@ -374,6 +387,7 @@
     StateSnapshot({
       'attributes': ReadOnlyDict({
         'attribution': 'Data provided by MyBMW',
+        'device_class': 'distance',
         'friendly_name': 'i3 (+ REX) Mileage',
         'state_class': <SensorStateClass.TOTAL_INCREASING: 'total_increasing'>,
         'unit_of_measurement': <UnitOfLength.KILOMETERS: 'km'>,
@@ -388,6 +402,7 @@
     StateSnapshot({
       'attributes': ReadOnlyDict({
         'attribution': 'Data provided by MyBMW',
+        'device_class': 'distance',
         'friendly_name': 'i3 (+ REX) Remaining range total',
         'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
         'unit_of_measurement': <UnitOfLength.KILOMETERS: 'km'>,
@@ -402,6 +417,7 @@
     StateSnapshot({
       'attributes': ReadOnlyDict({
         'attribution': 'Data provided by MyBMW',
+        'device_class': 'distance',
         'friendly_name': 'i3 (+ REX) Remaining range electric',
         'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
         'unit_of_measurement': <UnitOfLength.KILOMETERS: 'km'>,
@@ -416,6 +432,7 @@
     StateSnapshot({
       'attributes': ReadOnlyDict({
         'attribution': 'Data provided by MyBMW',
+        'device_class': 'distance',
         'friendly_name': 'i3 (+ REX) Remaining range fuel',
         'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
         'unit_of_measurement': <UnitOfLength.KILOMETERS: 'km'>,
@@ -430,6 +447,7 @@
     StateSnapshot({
       'attributes': ReadOnlyDict({
         'attribution': 'Data provided by MyBMW',
+        'device_class': 'volume',
         'friendly_name': 'i3 (+ REX) Remaining fuel',
         'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
         'unit_of_measurement': <UnitOfVolume.LITERS: 'L'>,
