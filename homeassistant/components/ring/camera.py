@@ -10,7 +10,13 @@ from haffmpeg.camera import CameraMjpeg
 import requests
 
 from homeassistant.components import ffmpeg
-from homeassistant.components.camera import Camera
+from homeassistant.components.camera import (
+    Camera,
+    CameraEntityFeature,
+    RtcConfiguration,
+    StreamType,
+    WebRtcConfiguration,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_aiohttp_proxy_stream
@@ -67,6 +73,8 @@ class RingCam(RingEntity, Camera):
         self._image = None
         self._expires_at = dt_util.utcnow() - FORCE_REFRESH_INTERVAL
         self._attr_unique_id = device.id
+        self._attr_supported_features |= CameraEntityFeature.STREAM
+        self._attr_frontend_stream_type = StreamType.WEB_RTC
 
     @callback
     def _handle_coordinator_update(self):
@@ -84,6 +92,28 @@ class RingCam(RingEntity, Camera):
             self._image = None
             self._expires_at = dt_util.utcnow()
             self.async_write_ha_state()
+
+    async def async_handle_web_rtc_offer(self, offer_sdp: str) -> str | None:
+        """Return the source of the stream."""
+        answer = await self._device.generate_rtc_stream(offer_sdp)
+        return answer
+
+    async def async_get_web_rtc_config(self) -> WebRtcConfiguration:
+        """Return configuration for the stream."""
+        ice_servers = self._device.get_ice_servers()
+        ice_server_config = [
+            RtcConfiguration.IceServer(urls=server) for server in ice_servers
+        ]
+        rtc_configuration = RtcConfiguration(ice_servers=ice_server_config)
+        return WebRtcConfiguration(
+            rtc_configuration=rtc_configuration,
+            audio_direction=WebRtcConfiguration.TransportDirection.SENDRECV,
+        )
+
+    async def async_handle_web_rtc_close(self) -> None:
+        """Do any cleanup following an RTC stream ending."""
+
+        await self._device.close_rtc_stream()
 
     @property
     def extra_state_attributes(self):
