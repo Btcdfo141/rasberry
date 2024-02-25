@@ -27,6 +27,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.config_validation import (  # noqa: F401
     PLATFORM_SCHEMA,
     PLATFORM_SCHEMA_BASE,
+    make_entity_service_schema,
 )
 from homeassistant.helpers.deprecation import (
     DeprecatedConstantEnum,
@@ -73,6 +74,7 @@ class WaterHeaterEntityFeature(IntFlag):
     OPERATION_MODE = 2
     AWAY_MODE = 4
     ON_OFF = 8
+    TARGET_TEMPERATURE_RANGE = 16
 
 
 # These SUPPORT_* constants are deprecated as of Home Assistant 2022.5.
@@ -96,7 +98,7 @@ ATTR_TARGET_TEMP_HIGH = "target_temp_high"
 ATTR_TARGET_TEMP_LOW = "target_temp_low"
 ATTR_CURRENT_TEMPERATURE = "current_temperature"
 
-CONVERTIBLE_ATTRIBUTE = [ATTR_TEMPERATURE]
+CONVERTIBLE_ATTRIBUTE = [ATTR_TEMPERATURE, ATTR_TARGET_TEMP_HIGH, ATTR_TARGET_TEMP_LOW]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -108,14 +110,19 @@ SET_AWAY_MODE_SCHEMA = vol.Schema(
         vol.Required(ATTR_AWAY_MODE): cv.boolean,
     }
 )
-SET_TEMPERATURE_SCHEMA = vol.Schema(
-    vol.All(
+SET_TEMPERATURE_SCHEMA = vol.All(
+    cv.has_at_least_one_key(
+        ATTR_TEMPERATURE, ATTR_TARGET_TEMP_HIGH, ATTR_TARGET_TEMP_LOW
+    ),
+    make_entity_service_schema(
         {
-            vol.Required(ATTR_TEMPERATURE, "temperature"): vol.Coerce(float),
+            vol.Exclusive(ATTR_TEMPERATURE, "temperature"): vol.Coerce(float),
+            vol.Inclusive(ATTR_TARGET_TEMP_HIGH, "temperature"): vol.Coerce(float),
+            vol.Inclusive(ATTR_TARGET_TEMP_LOW, "temperature"): vol.Coerce(float),
             vol.Optional(ATTR_ENTITY_ID): cv.comp_entity_ids,
             vol.Optional(ATTR_OPERATION_MODE): cv.string,
         }
-    )
+    ),
 )
 SET_OPERATION_MODE_SCHEMA = vol.Schema(
     {
@@ -144,7 +151,13 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         SERVICE_SET_AWAY_MODE, SET_AWAY_MODE_SCHEMA, async_service_away_mode
     )
     component.async_register_entity_service(
-        SERVICE_SET_TEMPERATURE, SET_TEMPERATURE_SCHEMA, async_service_temperature_set
+        SERVICE_SET_TEMPERATURE,
+        SET_TEMPERATURE_SCHEMA,
+        async_service_temperature_set,
+        [
+            WaterHeaterEntityFeature.TARGET_TEMPERATURE,
+            WaterHeaterEntityFeature.TARGET_TEMPERATURE_RANGE,
+        ],
     )
     component.async_register_entity_service(
         SERVICE_SET_OPERATION_MODE,
@@ -205,7 +218,7 @@ class WaterHeaterEntity(Entity, cached_properties=CACHED_PROPERTIES_WITH_ATTR_):
     _attr_operation_list: list[str] | None = None
     _attr_precision: float
     _attr_state: None = None
-    _attr_supported_features: WaterHeaterEntityFeature = WaterHeaterEntityFeature(0)
+    _attr_supported_features: WaterHeaterEntityFeature = WaterHeaterEntityFeature(1)
     _attr_target_temperature_high: float | None = None
     _attr_target_temperature_low: float | None = None
     _attr_target_temperature: float | None = None
@@ -247,6 +260,7 @@ class WaterHeaterEntity(Entity, cached_properties=CACHED_PROPERTIES_WITH_ATTR_):
     @property
     def state_attributes(self) -> dict[str, Any]:
         """Return the optional state attributes."""
+        supported_features = self.supported_features
         data: dict[str, Any] = {
             ATTR_CURRENT_TEMPERATURE: show_temp(
                 self.hass,
@@ -254,25 +268,27 @@ class WaterHeaterEntity(Entity, cached_properties=CACHED_PROPERTIES_WITH_ATTR_):
                 self.temperature_unit,
                 self.precision,
             ),
-            ATTR_TEMPERATURE: show_temp(
+        }
+        if supported_features & WaterHeaterEntityFeature.TARGET_TEMPERATURE:
+            data[ATTR_TEMPERATURE] = show_temp(
                 self.hass,
                 self.target_temperature,
                 self.temperature_unit,
                 self.precision,
-            ),
-            ATTR_TARGET_TEMP_HIGH: show_temp(
+            )
+        if supported_features & WaterHeaterEntityFeature.TARGET_TEMPERATURE_RANGE:
+            data[ATTR_TARGET_TEMP_HIGH] = show_temp(
                 self.hass,
                 self.target_temperature_high,
                 self.temperature_unit,
                 self.precision,
-            ),
-            ATTR_TARGET_TEMP_LOW: show_temp(
+            )
+            data[ATTR_TARGET_TEMP_LOW] = show_temp(
                 self.hass,
                 self.target_temperature_low,
                 self.temperature_unit,
                 self.precision,
-            ),
-        }
+            )
 
         supported_features = self.supported_features_compat
 
@@ -312,12 +328,18 @@ class WaterHeaterEntity(Entity, cached_properties=CACHED_PROPERTIES_WITH_ATTR_):
 
     @cached_property
     def target_temperature_high(self) -> float | None:
-        """Return the highbound target temperature we try to reach."""
+        """Return the highbound target temperature we try to reach.
+
+        Requires WaterHeaterEntityFeature.TARGET_TEMPERATURE_RANGE.
+        """
         return self._attr_target_temperature_high
 
     @cached_property
     def target_temperature_low(self) -> float | None:
-        """Return the lowbound target temperature we try to reach."""
+        """Return the lowbound target temperature we try to reach.
+
+        Requires WaterHeaterEntityFeature.TARGET_TEMPERATURE_RANGE.
+        """
         return self._attr_target_temperature_low
 
     @cached_property
