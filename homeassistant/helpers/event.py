@@ -1511,6 +1511,19 @@ def _run_async_call_action(
 
 
 @callback
+def _async_schedule_and_track_handle(
+    hass: HomeAssistant,
+    when: float,
+    job: HassJob[[datetime], Coroutine[Any, Any, None] | None],
+) -> CALLBACK_TYPE:
+    """Schedule the callback and keep track of the TimeHandle."""
+    handle = hass.loop.call_at(when, _run_async_call_action, hass, job)
+    if job.cancel_on_shutdown:
+        hass.async_track_timer_handle(handle)
+    return handle.cancel
+
+
+@callback
 @bind_hass
 def async_call_at(
     hass: HomeAssistant,
@@ -1527,7 +1540,7 @@ def async_call_at(
         if isinstance(action, HassJob)
         else HassJob(action, f"call_at {loop_time}")
     )
-    return hass.loop.call_at(loop_time, _run_async_call_action, hass, job).cancel
+    return _async_schedule_and_track_handle(hass, loop_time, job)
 
 
 @callback
@@ -1549,8 +1562,7 @@ def async_call_later(
         if isinstance(action, HassJob)
         else HassJob(action, f"call_later {delay}")
     )
-    loop = hass.loop
-    return loop.call_at(loop.time() + delay, _run_async_call_action, hass, job).cancel
+    return _async_schedule_and_track_handle(hass, hass.loop.time() + delay, job)
 
 
 call_later = threaded_listener_factory(async_call_later)
