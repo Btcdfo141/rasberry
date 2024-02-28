@@ -138,13 +138,13 @@ async def test_select(hass: HomeAssistant, siren) -> None:
     assert state
     assert state.state == STATE_UNKNOWN
     assert state.attributes["options"] == [
-        "Stop",
-        "Burglar",
-        "Fire",
-        "Emergency",
-        "Police Panic",
-        "Fire Panic",
-        "Emergency Panic",
+        "stop",
+        "burglar",
+        "fire",
+        "emergency",
+        "police_panic",
+        "fire_panic",
+        "emergency_panic",
     ]
 
     entity_entry = entity_registry.async_get(entity_id)
@@ -157,14 +157,14 @@ async def test_select(hass: HomeAssistant, siren) -> None:
         "select_option",
         {
             "entity_id": entity_id,
-            "option": security.IasWd.Warning.WarningMode.Burglar.name,
+            "option": security.IasWd.Warning.WarningMode.Burglar.name.lower(),
         },
         blocking=True,
     )
 
     state = hass.states.get(entity_id)
     assert state
-    assert state.state == security.IasWd.Warning.WarningMode.Burglar.name
+    assert state.state == security.IasWd.Warning.WarningMode.Burglar.name.lower()
 
 
 async def test_select_restore_state(
@@ -176,7 +176,7 @@ async def test_select_restore_state(
     """Test ZHA select entity restore state."""
 
     entity_id = "select.fakemanufacturer_fakemodel_default_siren_tone"
-    core_rs(entity_id, state="Burglar")
+    core_rs(entity_id, state="burglar")
     await async_mock_load_restore_state_from_storage(hass)
 
     zigpy_device = zigpy_device_mock(
@@ -203,7 +203,7 @@ async def test_select_restore_state(
     assert entity_id is not None
     state = hass.states.get(entity_id)
     assert state
-    assert state.state == security.IasWd.Warning.WarningMode.Burglar.name
+    assert state.state == security.IasWd.Warning.WarningMode.Burglar.name.lower()
 
 
 async def test_on_off_select_new_join(
