@@ -3,8 +3,12 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from homeassistant import config_entries
-from homeassistant.components.holiday.const import CONF_PROVINCE, DOMAIN
+from homeassistant import config_entries, data_entry_flow
+from homeassistant.components.holiday.const import (
+    CONF_CATEGORIES,
+    CONF_PROVINCE,
+    DOMAIN,
+)
 from homeassistant.const import CONF_COUNTRY
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -218,3 +222,33 @@ async def test_form_babel_replace_dash_with_underscore(hass: HomeAssistant) -> N
         "country": "DE",
         "province": "BW",
     }
+
+
+async def test_options_flow(hass: HomeAssistant) -> None:
+    """Test options flow."""
+    data = {
+        CONF_COUNTRY: "AT",
+        CONF_PROVINCE: "1",
+    }
+    entry = MockConfigEntry(domain=DOMAIN, data=data)
+
+    entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "init"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={CONF_CATEGORIES: ["bank"]},
+    )
+
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+
+    await hass.async_block_till_done()
+
+    assert entry.options == {CONF_CATEGORIES: ["bank"]}
