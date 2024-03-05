@@ -1094,6 +1094,8 @@ build.json @home-assistant/supervisor
 /homeassistant/components/refoss/ @ashionky
 /tests/components/refoss/ @ashionky
 /homeassistant/components/rejseplanen/ @DarkFox
+/homeassistant/components/remootio/ @ivgg-me
+/tests/components/remootio/ @ivgg-me
 /homeassistant/components/remote/ @home-assistant/core
 /tests/components/remote/ @home-assistant/core
 /homeassistant/components/renault/ @epenet
