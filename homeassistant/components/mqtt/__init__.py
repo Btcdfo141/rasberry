@@ -1,4 +1,5 @@
 """Support for MQTT message handling."""
+
 from __future__ import annotations
 
 import asyncio
@@ -462,7 +463,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Setup discovery
         if conf.get(CONF_DISCOVERY, DEFAULT_DISCOVERY):
             await discovery.async_start(
-                hass, conf.get(CONF_DISCOVERY_PREFIX, DEFAULT_PREFIX), entry
+                hass, conf.get(CONF_DISCOVERY_PREFIX, DEFAULT_PREFIX)
             )
         # Setup reload service after all platforms have loaded
         await async_setup_reload_service()
