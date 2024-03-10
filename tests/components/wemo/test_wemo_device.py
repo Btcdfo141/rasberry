@@ -3,22 +3,28 @@
 import asyncio
 from dataclasses import asdict
 from datetime import timedelta
-from unittest.mock import call, patch
+from unittest.mock import call, create_autospec, patch
 
 import pytest
+import pywemo
 from pywemo.exceptions import ActionException, PyWeMoException
 from pywemo.subscribe import EVENT_TYPE_LONG_PRESS
 
 from homeassistant import runner
-from homeassistant.components.wemo import CONF_DISCOVERY, CONF_STATIC, wemo_device
+from homeassistant.components.wemo import (
+    CONF_DISCOVERY,
+    CONF_STATIC,
+    async_wemo_dispatcher_connect,
+    wemo_device,
+)
 from homeassistant.components.wemo.const import DOMAIN, WEMO_SUBSCRIPTION_EVENT
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.setup import async_setup_component
 from homeassistant.util.dt import utcnow
 
-from .conftest import MOCK_FIRMWARE_VERSION, MOCK_HOST, MOCK_SERIAL_NUMBER
+from .conftest import MOCK_FIRMWARE_VERSION, MOCK_HOST, MOCK_PORT, MOCK_SERIAL_NUMBER
 
 from tests.common import async_fire_time_changed
 
@@ -187,6 +193,71 @@ async def test_dli_device_info(
 
     assert device_entries[0].configuration_url == "http://127.0.0.1"
     assert device_entries[0].identifiers == {(DOMAIN, "123456789")}
+    assert device_entries[0].name == "Digital Loggers"
+
+
+async def test_dli_multi_wemo(
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+):
+    """Verify multiple Digital Loggers devices work correctly."""
+
+    def create_switch(counter: int) -> pywemo.Switch:
+        """Create a mock WeMo switch device for each counter value."""
+        switch = create_autospec(pywemo.Switch, instance=True)
+        switch.host = f"{MOCK_HOST}_{counter}"
+        switch.port = MOCK_PORT + counter
+        switch.name = f"Friendly Name {counter}"
+        switch.serial_number = f"{counter}"
+        switch.model_name = "DLI emulated Belkin Socket"
+        switch.udn = f"uuid:Socket-1_0-{switch.serial_number}"
+        switch.firmware_version = MOCK_FIRMWARE_VERSION
+        switch.get_state.return_value = 0  # Default to Off
+        switch.supports_long_press.return_value = False
+        return switch
+
+    semaphore = asyncio.Semaphore(value=0)
+
+    async def async_connect(*args):
+        await async_wemo_dispatcher_connect(*args)
+        semaphore.release()
+
+    pywemo_switches = [
+        # Switches for DLI Device 1.
+        create_switch(11),
+        create_switch(12),
+        # Switches for DLI Device 2.
+        create_switch(21),
+        create_switch(22),
+    ]
+
+    with patch("pywemo.discover_devices", return_value=pywemo_switches), patch(
+        "homeassistant.components.wemo.switch.async_wemo_dispatcher_connect",
+        side_effect=async_connect,
+    ):
+        assert await async_setup_component(
+            hass, DOMAIN, {DOMAIN: {CONF_DISCOVERY: True}}
+        )
+        await semaphore.acquire()  # Returns after platform setup.
+        await hass.async_block_till_done()
+
+        # Verify the expected devices are present.
+        device_names = [
+            device_entry.name for device_entry in device_registry.devices.values()
+        ]
+        assert device_names[0] == "Digital Loggers"
+        assert device_names[1] == "Digital Loggers"
+
+        # Verify the expected entities are present.
+        entity_names = frozenset(
+            entity.name or entity.original_name
+            for entity in entity_registry.entities.values()
+        )
+        assert "Friendly Name 11" in entity_names
+        assert "Friendly Name 12" in entity_names
+        assert "Friendly Name 21" in entity_names
+        assert "Friendly Name 22" in entity_names
 
 
 async def test_options_enable_subscription_false(

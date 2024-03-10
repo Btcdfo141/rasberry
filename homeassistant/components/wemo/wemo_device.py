@@ -16,6 +16,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ATTR_CONFIGURATION_URL,
     ATTR_IDENTIFIERS,
+    ATTR_NAME,
     CONF_DEVICE_ID,
     CONF_NAME,
     CONF_PARAMS,
@@ -130,7 +131,7 @@ class DeviceCoordinator(DataUpdateCoordinator[None]):  # pylint: disable=hass-en
     async def async_shutdown(self) -> None:
         """Unregister push subscriptions and remove from coordinators dict."""
         await super().async_shutdown()
-        del _async_coordinators(self.hass)[self.device_id]
+        _async_coordinators(self.hass).pop(self.device_id, None)
         assert self.options  # Always set by async_register_device.
         if self.options.enable_subscription:
             await self._async_set_enable_subscription(False)
@@ -248,6 +249,7 @@ def _create_device_info(wemo: WeMoDevice) -> DeviceInfo:
     if wemo.model_name.lower() == "dli emulated belkin socket":
         _dev_info[ATTR_CONFIGURATION_URL] = f"http://{wemo.host}"
         _dev_info[ATTR_IDENTIFIERS] = {(DOMAIN, wemo.serial_number[:-1])}
+        _dev_info[ATTR_NAME] = "Digital Loggers"
     return _dev_info
 
 
