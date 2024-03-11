@@ -17,3 +17,22 @@ download_file:
       default: false
       selector:
         boolean:
+    async:
+      default: true
+      selector:
+        boolean:
+    auth_type:
+      selector:
+        select:
+          options:
+            - none
+            - basic
+            - digest
+    username:
+      example: "my_username"
+      selector:
+        text:
+    password:
+      example: "MyPa$$w0rd"
+      selector:
+        text:
