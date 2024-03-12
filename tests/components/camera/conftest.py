@@ -10,7 +10,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 
-from .common import WEBRTC_ANSWER
+from .common import WEBRTC_ANSWER, WEBRTC_CONFIG
 
 
 @pytest.fixture(autouse=True)
@@ -68,5 +68,8 @@ async def mock_camera_web_rtc_fixture(hass):
     ), patch(
         "homeassistant.components.camera.Camera.async_handle_web_rtc_offer",
         return_value=WEBRTC_ANSWER,
+    ), patch(
+        "homeassistant.components.camera.Camera.async_get_web_rtc_config",
+        return_value=WEBRTC_CONFIG,
     ):
         yield
