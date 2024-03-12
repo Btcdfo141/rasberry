@@ -7,9 +7,11 @@ from dataclasses import dataclass
 from typing import Any, cast
 
 from asyncsleepiq import (
+    CoreTemps,
     FootWarmingTemps,
     SleepIQActuator,
     SleepIQBed,
+    SleepIQCoreClimate,
     SleepIQFootWarmer,
     SleepIQSleeper,
 )
@@ -21,6 +23,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     ACTUATOR,
+    CORE_CLIMATE_TIMER,
     DOMAIN,
     ENTITY_TYPES,
     FIRMNESS,
@@ -95,6 +98,27 @@ def _get_foot_warming_unique_id(bed: SleepIQBed, foot_warmer: SleepIQFootWarmer)
     return f"{bed.id}_{foot_warmer.side.value}_{FOOT_WARMING_TIMER}"
 
 
+async def _async_set_core_climate_time(
+    core_climate: SleepIQCoreClimate, time: int
+) -> None:
+    temperature = CoreTemps(core_climate.temperature)
+    if temperature != CoreTemps.OFF:
+        await core_climate.turn_on(temperature, time)
+
+    core_climate.timer = time
+
+
+def _get_core_climate_name(bed: SleepIQBed, core_climate: SleepIQCoreClimate) -> str:
+    sleeper = sleeper_for_side(bed, core_climate.side)
+    return f"SleepNumber {bed.name} {sleeper.name} {ENTITY_TYPES[CORE_CLIMATE_TIMER]}"
+
+
+def _get_core_climate_unique_id(
+    bed: SleepIQBed, core_climate: SleepIQCoreClimate
+) -> str:
+    return f"{bed.id}_{core_climate.side.value}_{CORE_CLIMATE_TIMER}"
+
+
 NUMBER_DESCRIPTIONS: dict[str, SleepIQNumberEntityDescription] = {
     FIRMNESS: SleepIQNumberEntityDescription(
         key=FIRMNESS,
@@ -131,6 +155,18 @@ NUMBER_DESCRIPTIONS: dict[str, SleepIQNumberEntityDescription] = {
         set_value_fn=_async_set_foot_warmer_time,
         get_name_fn=_get_foot_warming_name,
         get_unique_id_fn=_get_foot_warming_unique_id,
+    ),
+    CORE_CLIMATE_TIMER: SleepIQNumberEntityDescription(
+        key=CORE_CLIMATE_TIMER,
+        native_min_value=30,
+        native_max_value=SleepIQCoreClimate.max_core_climate_time,
+        native_step=30,
+        name=ENTITY_TYPES[CORE_CLIMATE_TIMER],
+        icon="mdi:timer",
+        value_fn=lambda core_climate: core_climate.timer,
+        set_value_fn=_async_set_core_climate_time,
+        get_name_fn=_get_core_climate_name,
+        get_unique_id_fn=_get_core_climate_unique_id,
     ),
 }
 
@@ -172,6 +208,16 @@ async def async_setup_entry(
                     NUMBER_DESCRIPTIONS[FOOT_WARMING_TIMER],
                 )
             )
+        for core_climate in bed.foundation.core_climates:
+            entities.append(
+                SleepIQNumberEntity(
+                    data.data_coordinator,
+                    bed,
+                    core_climate,
+                    NUMBER_DESCRIPTIONS[CORE_CLIMATE_TIMER],
+                    core_climate.max_core_climate_time,
+                )
+            )
 
     async_add_entities(entities)
 
@@ -188,6 +234,7 @@ class SleepIQNumberEntity(SleepIQBedEntity[SleepIQDataUpdateCoordinator], Number
         bed: SleepIQBed,
         device: Any,
         description: SleepIQNumberEntityDescription,
+        native_max_value: float | None = None,
     ) -> None:
         """Initialize the number."""
         self.entity_description = description
@@ -197,6 +244,9 @@ class SleepIQNumberEntity(SleepIQBedEntity[SleepIQDataUpdateCoordinator], Number
         self._attr_unique_id = description.get_unique_id_fn(bed, device)
         if description.icon:
             self._attr_icon = description.icon
+
+        if native_max_value:
+            self._attr_native_max_value = native_max_value
 
         super().__init__(coordinator, bed)
 
