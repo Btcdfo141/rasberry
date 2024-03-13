@@ -42,7 +42,6 @@ from homeassistant.components.modbus.const import (
     CONF_BAUDRATE,
     CONF_BYTESIZE,
     CONF_CLIMATES,
-    CONF_CLOSE_COMM_ON_ERROR,
     CONF_DATA_TYPE,
     CONF_DEVICE_ADDRESS,
     CONF_FAN_MODE_HIGH,
@@ -61,7 +60,6 @@ from homeassistant.components.modbus.const import (
     CONF_MSG_WAIT,
     CONF_PARITY,
     CONF_RETRIES,
-    CONF_RETRY_ON_EMPTY,
     CONF_SLAVE_COUNT,
     CONF_STOPBITS,
     CONF_SWAP,
@@ -964,7 +962,6 @@ async def test_no_duplicate_names(do_config) -> None:
             CONF_TYPE: TCP,
             CONF_HOST: TEST_MODBUS_HOST,
             CONF_PORT: TEST_PORT_TCP,
-            CONF_CLOSE_COMM_ON_ERROR: True,
         },
         {
             CONF_TYPE: TCP,
@@ -976,7 +973,6 @@ async def test_no_duplicate_names(do_config) -> None:
             CONF_TYPE: TCP,
             CONF_HOST: TEST_MODBUS_HOST,
             CONF_PORT: TEST_PORT_TCP,
-            CONF_RETRY_ON_EMPTY: True,
         },
         {
             CONF_TYPE: TCP,
