@@ -40,6 +40,3 @@ class BzuCloudCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             await self.bzu.start()
             return await self.bzu.get_reading(str(self.chipid), self.sensor)
 
-    def fetch_data(self):
-        """Get initial data for sensor."""
-        return self.data
