@@ -289,7 +289,7 @@ class BzuCoordinator(DataUpdateCoordinator):
         self.data = None
 
 
-class BzuEntity(CoordinatorEntity, SensorEntity):
+class BzuEntity(CoordinatorEntity[BzuCloudCoordinator], SensorEntity):
     """Setup sensor entity."""
 
     def __init__(
