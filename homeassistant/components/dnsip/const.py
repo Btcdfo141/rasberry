@@ -9,7 +9,6 @@ CONF_HOSTNAME = "hostname"
 CONF_RESOLVER = "resolver"
 CONF_RESOLVER_IPV6 = "resolver_ipv6"
 CONF_IPV4 = "ipv4"
-CONF_IPV4_PORT = "ipv4_port"
 CONF_IPV6 = "ipv6"
 CONF_IPV6_V4 = "ipv6_v4"
 
