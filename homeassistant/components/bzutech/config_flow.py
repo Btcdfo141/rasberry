@@ -19,7 +19,7 @@ _LOGGER = logging.getLogger(__name__)
 
 STEP_USER_LOGIN_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_EMAIL, default=CONF_EMAIL): str,
+        vol.Required(CONF_EMAIL): str,
         vol.Required(CONF_PASSWORD): str,
     },
     True,
@@ -233,8 +233,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         api = self.api
         chipid = api.get_device_names()[int(self.selecteddevice)]
-        user_input[CONF_CHIPID] = chipid
-        user_input[CONF_SENSORPORT] = self.selectedport
+        user_input[CONF_CHIPID] = str(chipid)
+        user_input[CONF_SENSORPORT] = str(self.selectedport)
         user_input[CONF_EMAIL] = self.email
         user_input[CONF_PASSWORD] = self.password
         user_input[CONF_SENSORNAME] = api.dispositivos[chipid].get_sensor_names_on(

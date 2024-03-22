@@ -3,11 +3,7 @@
   "name": "Bzu Tech",
   "codeowners": ["@enioo22"],
   "config_flow": true,
-  "dependencies": [],
   "documentation": "https://www.home-assistant.io/integrations/bzutech",
-  "homekit": {},
   "iot_class": "cloud_push",
-  "requirements": ["bzutech==1.0.11"],
-  "ssdp": [],
-  "zeroconf": []
+  "requirements": ["bzutech==1.0.11"]
 }

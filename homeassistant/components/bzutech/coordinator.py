@@ -8,7 +8,7 @@ from bzutech import BzuTech
 
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import CONF_CHIPID, CONF_SENSORNAME, DOMAIN
 
@@ -32,14 +32,10 @@ class BzuCloudCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
 
     async def _async_update_data(self) -> dict[str, Any]:
-        while not self.started:
+        if not self.started:
             self.started = await self.bzu.start()
         try:
             return await self.bzu.get_reading(str(self.chipid), self.sensor)
-        except KeyError:
-            await self.bzu.start()
-            return await self.bzu.get_reading(str(self.chipid), self.sensor)
-
-    def fetch_data(self):
-        """Get initial data for sensor."""
-        return self.data
+        except KeyError as error:
+            self.started = False
+            raise UpdateFailed(error) from error
