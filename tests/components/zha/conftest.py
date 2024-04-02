@@ -1,6 +1,7 @@
 """Test configuration for the ZHA component."""
 
 from collections.abc import Callable, Generator
+import contextlib
 import itertools
 import time
 from typing import Any
@@ -200,8 +201,9 @@ async def zigpy_app_controller():
 async def config_entry_fixture(hass) -> MockConfigEntry:
     """Fixture representing a config entry."""
     return MockConfigEntry(
-        version=3,
+        version=4,
         domain=zha_const.DOMAIN,
+        unique_id="epid=00:15:8d:00:02:32:4f:32,channel=15",
         data={
             zigpy.config.CONF_DEVICE: {zigpy.config.CONF_DEVICE_PATH: "/dev/ttyUSB0"},
             zha_const.CONF_RADIO_TYPE: "ezsp",
@@ -227,16 +229,26 @@ def mock_zigpy_connect(
     zigpy_app_controller: ControllerApplication,
 ) -> Generator[ControllerApplication, None, None]:
     """Patch the zigpy radio connection with our mock application."""
-    with (
-        patch(
-            "bellows.zigbee.application.ControllerApplication.new",
-            return_value=zigpy_app_controller,
-        ),
-        patch(
-            "bellows.zigbee.application.ControllerApplication",
-            return_value=zigpy_app_controller,
-        ),
-    ):
+    with contextlib.ExitStack() as stack:
+        for radio_lib, app_cls in {
+            "bellows": zha_const.RadioType.ezsp,
+            "zigpy_znp": zha_const.RadioType.znp,
+            "zigpy_deconz": zha_const.RadioType.deconz,
+            "zigpy_zigate": zha_const.RadioType.zigate,
+            "zigpy_xbee": zha_const.RadioType.xbee,
+        }.items():
+            app_path = f"{radio_lib}.zigbee.application.ControllerApplication"
+
+            stack.enter_context(patch(app_path, return_value=zigpy_app_controller))
+            stack.enter_context(
+                patch(f"{app_path}.new", return_value=zigpy_app_controller)
+            )
+            stack.enter_context(
+                patch.object(
+                    app_cls.controller, "new", return_value=zigpy_app_controller
+                )
+            )
+
         yield zigpy_app_controller
 
 

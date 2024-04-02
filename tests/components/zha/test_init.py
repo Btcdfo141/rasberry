@@ -2,7 +2,7 @@
 
 import asyncio
 import typing
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import patch
 
 import pytest
 from zigpy.application import ControllerApplication
@@ -32,7 +32,7 @@ from .test_light import LIGHT_ON_OFF
 from tests.common import MockConfigEntry
 
 DATA_RADIO_TYPE = "ezsp"
-DATA_PORT_PATH = "/dev/serial/by-id/FTDI_USB__-__Serial_Cable_12345678-if00-port0"
+DATA_PORT_PATH = "/dev/serial/by-id/some-port"
 
 
 @pytest.fixture(autouse=True)
@@ -42,8 +42,21 @@ def disable_platform_only():
         yield
 
 
+@pytest.fixture(autouse=True)
+def mock_setup():
+    """Disable quirks to speed up tests."""
+    with (
+        patch("homeassistant.components.zha.setup_quirks", return_value=True),
+        patch(
+            "homeassistant.components.zha.websocket_api.async_load_api",
+            return_value=True,
+        ),
+    ):
+        yield
+
+
 @pytest.fixture
-def config_entry_v1(hass):
+def config_entry_v1(hass: HomeAssistant) -> MockConfigEntry:
     """Config entry version 1 fixture."""
     return MockConfigEntry(
         domain=DOMAIN,
@@ -53,12 +66,15 @@ def config_entry_v1(hass):
 
 
 @pytest.mark.parametrize("config", [{}, {DOMAIN: {}}])
-@patch("homeassistant.components.zha.async_setup_entry", AsyncMock(return_value=True))
 async def test_migration_from_v1_no_baudrate(
-    hass: HomeAssistant, config_entry_v1, config
+    config: dict,
+    hass: HomeAssistant,
+    config_entry_v1: MockConfigEntry,
+    mock_zigpy_connect,
 ) -> None:
     """Test migration of config entry from v1."""
     config_entry_v1.add_to_hass(hass)
+
     assert await async_setup_component(hass, DOMAIN, config)
 
     assert config_entry_v1.data[CONF_RADIO_TYPE] == DATA_RADIO_TYPE
@@ -68,12 +84,12 @@ async def test_migration_from_v1_no_baudrate(
     assert config_entry_v1.version == 4
 
 
-@patch("homeassistant.components.zha.async_setup_entry", AsyncMock(return_value=True))
 async def test_migration_from_v1_with_baudrate(
-    hass: HomeAssistant, config_entry_v1
+    hass: HomeAssistant, config_entry_v1: MockConfigEntry, mock_zigpy_connect
 ) -> None:
     """Test migration of config entry from v1 with baudrate in config."""
     config_entry_v1.add_to_hass(hass)
+
     assert await async_setup_component(hass, DOMAIN, {DOMAIN: {CONF_BAUDRATE: 115200}})
 
     assert config_entry_v1.data[CONF_RADIO_TYPE] == DATA_RADIO_TYPE
@@ -85,12 +101,12 @@ async def test_migration_from_v1_with_baudrate(
     assert config_entry_v1.version == 4
 
 
-@patch("homeassistant.components.zha.async_setup_entry", AsyncMock(return_value=True))
 async def test_migration_from_v1_wrong_baudrate(
-    hass: HomeAssistant, config_entry_v1
+    hass: HomeAssistant, config_entry_v1: MockConfigEntry, mock_zigpy_connect
 ) -> None:
     """Test migration of config entry from v1 with wrong baudrate."""
     config_entry_v1.add_to_hass(hass)
+
     assert await async_setup_component(hass, DOMAIN, {DOMAIN: {CONF_BAUDRATE: 115222}})
 
     assert config_entry_v1.data[CONF_RADIO_TYPE] == DATA_RADIO_TYPE
@@ -113,7 +129,9 @@ async def test_migration_from_v1_wrong_baudrate(
         {CONF_RADIO_TYPE: "ezsp", CONF_USB_PATH: "str"},
     ],
 )
-async def test_config_depreciation(hass: HomeAssistant, zha_config) -> None:
+async def test_config_depreciation(
+    hass: HomeAssistant, zha_config: dict, mock_zigpy_connect
+) -> None:
     """Test config option depreciation."""
 
     with patch(
@@ -139,11 +157,7 @@ async def test_config_depreciation(hass: HomeAssistant, zha_config) -> None:
         ("socket://[1.2.3.4]:5678 ", "socket://1.2.3.4:5678"),
     ],
 )
-@patch("homeassistant.components.zha.setup_quirks", Mock(return_value=True))
-@patch(
-    "homeassistant.components.zha.websocket_api.async_load_api", Mock(return_value=True)
-)
-async def test_setup_with_v3_cleaning_uri(
+async def test_setup_with_cleaning_uri(
     hass: HomeAssistant,
     path: str,
     cleaned_path: str,
@@ -189,7 +203,6 @@ async def test_setup_with_v3_cleaning_uri(
         ("deconz", 115200, None, 115200, None),
     ],
 )
-@patch("homeassistant.components.zha.async_setup_entry", AsyncMock(return_value=True))
 async def test_migration_baudrate_and_flow_control(
     radio_type: str,
     old_baudrate: int,
@@ -198,6 +211,7 @@ async def test_migration_baudrate_and_flow_control(
     new_flow_control: typing.Literal["hardware", "software", None],
     hass: HomeAssistant,
     config_entry: MockConfigEntry,
+    mock_zigpy_connect,
 ) -> None:
     """Test baudrate and flow control migration."""
 
@@ -210,7 +224,7 @@ async def test_migration_baudrate_and_flow_control(
             CONF_DEVICE: {
                 CONF_BAUDRATE: old_baudrate,
                 CONF_FLOW_CONTROL: old_flow_control,
-                CONF_DEVICE_PATH: "/dev/null",
+                CONF_DEVICE_PATH: DATA_PORT_PATH,
             },
         },
         version=3,
@@ -219,9 +233,40 @@ async def test_migration_baudrate_and_flow_control(
     await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
 
-    assert config_entry.version > 3
+    assert config_entry.version == 4
     assert config_entry.data[CONF_DEVICE][CONF_BAUDRATE] == new_baudrate
     assert config_entry.data[CONF_DEVICE][CONF_FLOW_CONTROL] == new_flow_control
+
+
+async def test_migration_unique_id(
+    hass: HomeAssistant,
+    config_entry: MockConfigEntry,
+    mock_zigpy_connect,
+) -> None:
+    """Test unique ID regeneration."""
+
+    config_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(
+        config_entry,
+        unique_id="not_a_good_unique_id",
+        data={
+            **config_entry.data,
+            CONF_RADIO_TYPE: "ezsp",
+            CONF_DEVICE: {
+                CONF_BAUDRATE: 115200,
+                CONF_FLOW_CONTROL: "hardware",
+                CONF_DEVICE_PATH: "/dev/serial/by-id/usb-1234",
+            },
+        },
+        version=4,
+    )
+
+    await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+    await hass.config_entries.async_unload(config_entry.entry_id)
+
+    assert config_entry.version == 4
+    assert config_entry.unique_id == "epid=00:15:8d:00:02:32:4f:32,channel=15"
 
 
 @patch(
