@@ -2,30 +2,27 @@
 
 from __future__ import annotations
 
-from homeassistant.components.lastfm.const import DOMAIN
+from unittest.mock import AsyncMock
+
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 
-from . import MockUser
-from .conftest import ComponentSetup
-
 from tests.common import MockConfigEntry
+from tests.components.lastfm import setup_integration
 
 
 async def test_load_unload_entry(
     hass: HomeAssistant,
-    setup_integration: ComponentSetup,
-    config_entry: MockConfigEntry,
-    default_user: MockUser,
+    mock_config_entry: MockConfigEntry,
+    mock_lastfm_network: AsyncMock,
+    mock_lastfm_user: AsyncMock,
 ) -> None:
     """Test load and unload entry."""
-    await setup_integration(config_entry, default_user)
-    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    await setup_integration(hass, mock_config_entry)
 
-    state = hass.states.get("sensor.lastfm_testaccount1")
-    assert state
+    assert mock_config_entry.state is ConfigEntryState.LOADED
 
-    await hass.config_entries.async_remove(entry.entry_id)
+    await hass.config_entries.async_unload(mock_config_entry.entry_id)
     await hass.async_block_till_done()
 
-    state = hass.states.get("sensor.lastfm_testaccount1")
-    assert not state
+    assert mock_config_entry.state is ConfigEntryState.NOT_LOADED
