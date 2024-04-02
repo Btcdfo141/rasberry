@@ -47,6 +47,22 @@
       }
     }
   },
+  "services": {
+    "fetch_connections": {
+      "name": "Fetch Connections",
+      "description": "Fetch a list of connections from the swiss public transport api.",
+      "fields": {
+        "entity_id": {
+          "name": "List",
+          "description": "Swiss public transport sensor to fetch connections for."
+        },
+        "limit": {
+          "name": "Limit",
+          "description": "Number of connections to fetch from [1-15]"
+        }
+      }
+    }
+  },
   "issues": {
     "deprecated_yaml_import_issue_cannot_connect": {
       "title": "The swiss public transport YAML configuration import cannot connect to server",

@@ -8,33 +8,50 @@ from datetime import datetime, timedelta
 import logging
 from typing import TYPE_CHECKING
 
+from opendata_transport.exceptions import OpendataTransportError
 import voluptuous as vol
 
 from homeassistant import config_entries, core
 from homeassistant.components.sensor import (
+    DOMAIN as SENSOR_DOMAIN,
     PLATFORM_SCHEMA,
     SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
 )
 from homeassistant.config_entries import SOURCE_IMPORT
-from homeassistant.const import CONF_NAME, UnitOfTime
-from homeassistant.core import DOMAIN as HOMEASSISTANT_DOMAIN, HomeAssistant, callback
+from homeassistant.const import ATTR_ENTITY_ID, CONF_NAME, UnitOfTime
+from homeassistant.core import (
+    DOMAIN as HOMEASSISTANT_DOMAIN,
+    HomeAssistant,
+    SupportsResponse,
+    callback,
+)
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_platform
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue
+from homeassistant.helpers.selector import (
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+)
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType, StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
+    ATTR_LIMIT,
     CONF_DESTINATION,
     CONF_START,
     DEFAULT_NAME,
     DOMAIN,
     PLACEHOLDERS,
     SENSOR_CONNECTIONS_COUNT,
+    SENSOR_CONNECTIONS_MAX,
+    SERVICE_FETCH_CONNECTIONS,
 )
 from .coordinator import DataConnection, SwissPublicTransportDataUpdateCoordinator
 
@@ -115,6 +132,26 @@ async def async_setup_entry(
     async_add_entities(
         SwissPublicTransportSensor(coordinator, description, unique_id)
         for description in SENSORS
+    )
+
+    platform = entity_platform.async_get_current_platform()
+
+    platform.async_register_entity_service(
+        SERVICE_FETCH_CONNECTIONS,
+        vol.Schema(
+            {
+                vol.Required(ATTR_ENTITY_ID): cv.entities_domain(SENSOR_DOMAIN),
+                vol.Required(
+                    ATTR_LIMIT, default=SENSOR_CONNECTIONS_COUNT
+                ): NumberSelector(
+                    NumberSelectorConfig(
+                        min=0, max=SENSOR_CONNECTIONS_MAX, mode=NumberSelectorMode.BOX
+                    )
+                ),
+            }
+        ),
+        "async_fetch_connections",
+        supports_response=SupportsResponse.ONLY,
     )
 
 
@@ -218,3 +255,16 @@ class SwissPublicTransportSensor(
                 ].items()
                 if key not in {"departure"}
             }
+
+    async def async_fetch_connections(
+        self,
+        limit: int,
+    ) -> dict:
+        """Fetch a set of connections."""
+        try:
+            connections = await self.coordinator.fetch_connections(limit=int(limit))
+        except OpendataTransportError as e:
+            raise HomeAssistantError(
+                "Unable to fetch connections for swiss public trainsport"
+            ) from e
+        return {"connections": connections}
