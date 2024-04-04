@@ -126,8 +126,6 @@ DEFAULT_MAX_HUMIDITY = 99
 ENTITY_ID_FORMAT = DOMAIN + ".{}"
 SCAN_INTERVAL = timedelta(seconds=60)
 
-CONVERTIBLE_ATTRIBUTE = [ATTR_TEMPERATURE, ATTR_TARGET_TEMP_LOW, ATTR_TARGET_TEMP_HIGH]
-
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -714,6 +712,53 @@ class ClimateEntity(Entity, cached_properties=CACHED_PROPERTIES_WITH_ATTR_):
             ft.partial(self.set_temperature, **kwargs)
         )
 
+    def set_target_temperature(
+        self,
+        temperature: float,
+        hvac_mode: HVACMode | None = None,
+    ) -> None:
+        """Set new target temperature."""
+        raise NotImplementedError
+
+    async def async_set_target_temperature(
+        self,
+        temperature: float,
+        hvac_mode: HVACMode | None = None,
+    ) -> None:
+        """Set new target temperature."""
+        await self.hass.async_add_executor_job(
+            ft.partial(
+                self.set_temperature,
+                temperature=temperature,
+                hvac_mode=hvac_mode,
+            )
+        )
+
+    def set_target_temperature_range(
+        self,
+        temperature_high: float,
+        temperature_low: float,
+        hvac_mode: HVACMode | None = None,
+    ) -> None:
+        """Set new target temperature range."""
+        raise NotImplementedError
+
+    async def async_set_target_temperature_range(
+        self,
+        temperature_high: float,
+        temperature_low: float,
+        hvac_mode: HVACMode | None = None,
+    ) -> None:
+        """Set new target temperature range."""
+        await self.hass.async_add_executor_job(
+            ft.partial(
+                self.set_temperature,
+                temperature_high=temperature_high,
+                temperature_low=temperature_low,
+                hvac_mode=hvac_mode,
+            )
+        )
+
     def set_humidity(self, humidity: int) -> None:
         """Set new target humidity."""
         raise NotImplementedError
@@ -900,17 +945,57 @@ async def async_service_temperature_set(
 ) -> None:
     """Handle set temperature service."""
     hass = entity.hass
-    kwargs = {}
 
-    for value, temp in service_call.data.items():
-        if value in CONVERTIBLE_ATTRIBUTE:
-            kwargs[value] = TemperatureConverter.convert(
-                temp, hass.config.units.temperature_unit, entity.temperature_unit
+    temp_convert = ft.partial(
+        TemperatureConverter.convert,
+        from_unit=hass.config.units.temperature_unit,
+        to_unit=entity.temperature_unit,
+    )
+    hvac_mode: HVACMode | None = service_call.data.get(ATTR_HVAC_MODE)
+
+    if (
+        ATTR_TEMPERATURE in service_call.data
+        and ClimateEntityFeature.TARGET_TEMPERATURE in entity.supported_features
+    ):
+        temperature = temp_convert(service_call.data[ATTR_TEMPERATURE])
+        if (
+            type(entity).async_set_target_temperature
+            is not ClimateEntity.async_set_target_temperature
+        ):
+            await entity.async_set_target_temperature(
+                temperature=temperature, hvac_mode=hvac_mode
             )
         else:
-            kwargs[value] = temp
-
-    await entity.async_set_temperature(**kwargs)
+            await entity.async_set_temperature(
+                **{
+                    ATTR_TEMPERATURE: temperature,
+                    ATTR_HVAC_MODE: hvac_mode,
+                }
+            )
+    elif (
+        ATTR_TARGET_TEMP_HIGH in service_call.data
+        and ATTR_TARGET_TEMP_LOW in service_call.data
+        and ClimateEntityFeature.TARGET_TEMPERATURE_RANGE in entity.supported_features
+    ):
+        temperature_high = temp_convert(service_call.data[ATTR_TARGET_TEMP_HIGH])
+        temperature_low = temp_convert(service_call.data[ATTR_TARGET_TEMP_LOW])
+        if (
+            type(entity).async_set_target_temperature_range
+            is not ClimateEntity.async_set_target_temperature_range
+        ):
+            await entity.async_set_target_temperature_range(
+                temperature_high=temperature_high,
+                temperature_low=temperature_low,
+                hvac_mode=hvac_mode,
+            )
+        else:
+            await entity.async_set_temperature(
+                **{
+                    ATTR_TARGET_TEMP_HIGH: temperature_high,
+                    ATTR_TARGET_TEMP_LOW: temperature_low,
+                    ATTR_HVAC_MODE: hvac_mode,
+                }
+            )
 
 
 # As we import deprecated constants from the const module, we need to add these two functions
