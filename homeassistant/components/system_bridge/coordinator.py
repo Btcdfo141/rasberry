@@ -202,7 +202,7 @@ class SystemBridgeDataUpdateCoordinator(DataUpdateCoordinator[SystemBridgeData])
             self.last_update_success = False
             self.async_update_listeners()
             raise ConfigEntryAuthFailed from exception
-        except ConnectionErrorException as exception:
+        except (ConnectionClosedException, ConnectionErrorException) as exception:
             self.logger.warning(
                 "Connection error occurred for %s. Will retry: %s",
                 self.title,
