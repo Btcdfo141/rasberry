@@ -18,7 +18,6 @@ import xmltodict
 
 from homeassistant.components import media_source
 from homeassistant.components.media_player import (
-    PLATFORM_SCHEMA,
     BrowseMedia,
     MediaPlayerEntity,
     MediaPlayerEntityFeature,
@@ -26,11 +25,10 @@ from homeassistant.components.media_player import (
     MediaType,
     async_process_play_media_url,
 )
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ATTR_ENTITY_ID,
     CONF_HOST,
-    CONF_HOSTS,
-    CONF_NAME,
     CONF_PORT,
     EVENT_HOMEASSISTANT_START,
     EVENT_HOMEASSISTANT_STOP,
@@ -41,7 +39,6 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.device_registry import format_mac
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.util import Throttle
 import homeassistant.util.dt as dt_util
 
@@ -69,21 +66,6 @@ SYNC_STATUS_INTERVAL = timedelta(minutes=5)
 UPDATE_CAPTURE_INTERVAL = timedelta(minutes=30)
 UPDATE_PRESETS_INTERVAL = timedelta(minutes=30)
 UPDATE_SERVICES_INTERVAL = timedelta(minutes=30)
-
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
-    {
-        vol.Optional(CONF_HOSTS): vol.All(
-            cv.ensure_list,
-            [
-                {
-                    vol.Required(CONF_HOST): cv.string,
-                    vol.Optional(CONF_NAME): cv.string,
-                    vol.Optional(CONF_PORT, default=DEFAULT_PORT): cv.port,
-                }
-            ],
-        )
-    }
-)
 
 BS_SCHEMA = vol.Schema({vol.Optional(ATTR_ENTITY_ID): cv.entity_ids})
 
@@ -141,34 +123,25 @@ def _add_player(hass, async_add_entities, host, port=None, name=None):
         hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, _init_player)
 
 
-async def async_setup_platform(
+async def async_setup_entry(
     hass: HomeAssistant,
-    config: ConfigType,
+    config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
-    discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
-    """Set up the Bluesound platforms."""
+    """Set up the Bluesound entry."""
     if DATA_BLUESOUND not in hass.data:
         hass.data[DATA_BLUESOUND] = []
 
-    if discovery_info:
-        _add_player(
-            hass,
-            async_add_entities,
-            discovery_info.get(CONF_HOST),
-            discovery_info.get(CONF_PORT),
-        )
-        return
+    _add_player(
+        hass,
+        async_add_entities,
+        config_entry.data.get(CONF_HOST),
+        config_entry.data.get(CONF_PORT),
+    )
 
-    if hosts := config.get(CONF_HOSTS):
-        for host in hosts:
-            _add_player(
-                hass,
-                async_add_entities,
-                host.get(CONF_HOST),
-                host.get(CONF_PORT),
-                host.get(CONF_NAME),
-            )
+
+def setup_services(hass: HomeAssistant):
+    """Set up services for Bluesound component."""
 
     async def async_service_handler(service: ServiceCall) -> None:
         """Map services to method of Bluesound devices."""
