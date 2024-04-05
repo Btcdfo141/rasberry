@@ -3,6 +3,8 @@
 from collections.abc import Iterator
 from datetime import datetime, timedelta
 
+from lmcloud.models import LaMarzoccoWakeUpSleepEntry
+
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -10,9 +12,20 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
+from .coordinator import LaMarzoccoUpdateCoordinator
 from .entity import LaMarzoccoBaseEntity
 
 CALENDAR_KEY = "auto_on_off_schedule"
+
+DAY_OF_WEEK = [
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+]
 
 
 async def async_setup_entry(
@@ -23,13 +36,27 @@ async def async_setup_entry(
     """Set up switch entities and services."""
 
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
-    async_add_entities([LaMarzoccoCalendarEntity(coordinator, CALENDAR_KEY)])
+    async_add_entities(
+        LaMarzoccoCalendarEntity(coordinator, CALENDAR_KEY, wake_up_sleep_entry)
+        for wake_up_sleep_entry in coordinator.device.config.wake_up_sleep_entries.values()
+    )
 
 
 class LaMarzoccoCalendarEntity(LaMarzoccoBaseEntity, CalendarEntity):
     """Class representing a La Marzocco calendar."""
 
     _attr_translation_key = CALENDAR_KEY
+
+    def __init__(
+        self,
+        coordinator: LaMarzoccoUpdateCoordinator,
+        key: str,
+        wake_up_sleep_entry: LaMarzoccoWakeUpSleepEntry,
+    ) -> None:
+        """Set up calendar."""
+        super().__init__(coordinator, f"{key}_{wake_up_sleep_entry.entry_id}")
+        self.wake_up_sleep_entry = wake_up_sleep_entry
+        self._attr_translation_placeholders = {"id": wake_up_sleep_entry.entry_id}
 
     @property
     def event(self) -> CalendarEvent | None:
@@ -85,28 +112,46 @@ class LaMarzoccoCalendarEntity(LaMarzoccoBaseEntity, CalendarEntity):
         """Return calendar event for a given weekday."""
 
         # check first if auto/on off is turned on in general
-        # because could still be on for that day but disabled
-        if self.coordinator.lm.current_status["global_auto"] != "Enabled":
+        if not self.wake_up_sleep_entry.enabled:
             return None
 
         # parse the schedule for the day
-        schedule_day = self.coordinator.lm.schedule[date.weekday()]
-        if schedule_day["enable"] == "Disabled":
+
+        if DAY_OF_WEEK[date.weekday()] not in self.wake_up_sleep_entry.days:
             return None
-        hour_on, minute_on = schedule_day["on"].split(":")
-        hour_off, minute_off = schedule_day["off"].split(":")
+
+        hour_on, minute_on = self.wake_up_sleep_entry.time_on.split(":")
+        hour_off, minute_off = self.wake_up_sleep_entry.time_off.split(":")
+
+        # convert 24:00 to 23:59:59.999999
+        second_on = 0
+        second_off = 0
+        microsecond_on = 0
+        microsocond_off = 0
+
+        if hour_on == "24":
+            hour_on = "23"
+            minute_on = "59"
+            second_off = 59
+            microsecond_on = 999999
+        if hour_off == "24":
+            hour_off = "23"
+            minute_off = "59"
+            second_off = 59
+            microsocond_off = 999999
+
         return CalendarEvent(
             start=date.replace(
                 hour=int(hour_on),
                 minute=int(minute_on),
-                second=0,
-                microsecond=0,
+                second=second_on,
+                microsecond=microsecond_on,
             ),
             end=date.replace(
                 hour=int(hour_off),
                 minute=int(minute_off),
-                second=0,
-                microsecond=0,
+                second=second_off,
+                microsecond=microsocond_off,
             ),
             summary=f"Machine {self.coordinator.config_entry.title} on",
             description="Machine is scheduled to turn on at the start time and off at the end time",
