@@ -131,7 +131,7 @@ class MockNumberEntityDescr(NumberEntity):
         )
 
     @property
-    def native_value(self):
+    def native_value(self) -> float | None:
         """Return the current value."""
         return None
 

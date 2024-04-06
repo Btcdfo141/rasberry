@@ -33,7 +33,7 @@ def mock_frozen_time() -> None:
 
     This is needed so that it can run before other fixtures.
     """
-    return None
+    return
 
 
 @pytest.fixture(autouse=True)

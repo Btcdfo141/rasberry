@@ -170,7 +170,7 @@ class FAST_PYSQLITE_DATETIME(sqlite.DATETIME):
 class NativeLargeBinary(LargeBinary):
     """A faster version of LargeBinary for engines that support python bytes natively."""
 
-    def result_processor(self, dialect, coltype):  # type: ignore[no-untyped-def]
+    def result_processor(self, dialect, coltype) -> Callable | None:  # type: ignore[no-untyped-def]
         """No conversion needed for engines that support native bytes."""
         return None
 

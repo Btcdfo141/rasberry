@@ -87,7 +87,7 @@ def register_words_fixture():
 @pytest.fixture(name="config_addon")
 def config_addon_fixture():
     """Add entra configuration items."""
-    return None
+    return
 
 
 @pytest.fixture(name="do_exception")

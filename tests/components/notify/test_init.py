@@ -9,6 +9,7 @@ import yaml
 
 from homeassistant import config as hass_config
 from homeassistant.components import notify
+from homeassistant.components.notify.legacy import BaseNotificationService
 from homeassistant.const import SERVICE_RELOAD, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.discovery import async_load_platform
@@ -174,7 +175,9 @@ async def test_invalid_service(
 ) -> None:
     """Test service setup with an invalid service object or platform."""
 
-    def get_service(hass, config, discovery_info=None):
+    def get_service(
+        hass, config, discovery_info=None
+    ) -> BaseNotificationService | None:
         """Return None for an invalid notify service."""
         return None
 

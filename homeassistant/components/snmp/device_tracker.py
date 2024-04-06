@@ -78,7 +78,7 @@ class SnmpScanner(DeviceScanner):
         self._update_info()
         return [client["mac"] for client in self.last_results if client.get("mac")]
 
-    def get_device_name(self, device):
+    def get_device_name(self, device: str) -> str | None:
         """Return the name of the given device or None if we don't know."""
         # We have no names
         return None
