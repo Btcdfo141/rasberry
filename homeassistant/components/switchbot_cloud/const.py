@@ -6,3 +6,4 @@ from typing import Final
 DOMAIN: Final = "switchbot_cloud"
 ENTRY_TITLE = "SwitchBot Cloud"
 SCAN_INTERVAL = timedelta(seconds=600)
+LOCK_SCAN_INTERVAL = timedelta(seconds=30)

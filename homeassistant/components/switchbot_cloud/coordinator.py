@@ -9,7 +9,7 @@ from switchbot_api import CannotConnect, Device, Remote, SwitchBotAPI
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DOMAIN, SCAN_INTERVAL
+from .const import DOMAIN, LOCK_SCAN_INTERVAL, SCAN_INTERVAL
 
 _LOGGER = getLogger(__name__)
 
@@ -27,11 +27,14 @@ class SwitchBotCoordinator(DataUpdateCoordinator[Status]):
         self, hass: HomeAssistant, api: SwitchBotAPI, device: Device | Remote
     ) -> None:
         """Initialize SwitchBot Cloud."""
+        scan_interval = SCAN_INTERVAL
+        if device.device_type.endswith("Smart Lock"):
+            scan_interval = LOCK_SCAN_INTERVAL
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=SCAN_INTERVAL,
+            update_interval=scan_interval,
         )
         self._api = api
         self._device_id = device.device_id
