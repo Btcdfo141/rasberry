@@ -22,7 +22,7 @@ from tests.common import MockConfigEntry, load_fixture
 @pytest.fixture(name="addon_info_side_effect")
 def addon_info_side_effect_fixture():
     """Return the add-on info side effect."""
-    return
+    return None  # noqa: RET501
 
 
 @pytest.fixture(name="addon_info")
@@ -46,7 +46,7 @@ def mock_addon_info(addon_info_side_effect):
 @pytest.fixture(name="addon_store_info_side_effect")
 def addon_store_info_side_effect_fixture():
     """Return the add-on store info side effect."""
-    return
+    return None  # noqa: RET501
 
 
 @pytest.fixture(name="addon_store_info")
@@ -207,7 +207,7 @@ def stop_addon_fixture():
 @pytest.fixture(name="restart_addon_side_effect")
 def restart_addon_side_effect_fixture():
     """Return the restart add-on options side effect."""
-    return
+    return None  # noqa: RET501
 
 
 @pytest.fixture(name="restart_addon")
