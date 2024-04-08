@@ -4,6 +4,7 @@ import asyncio
 import copy
 import io
 import json
+from typing import Any
 from unittest.mock import DEFAULT, AsyncMock, patch
 
 import pytest
@@ -20,9 +21,9 @@ from tests.common import MockConfigEntry, load_fixture
 
 
 @pytest.fixture(name="addon_info_side_effect")
-def addon_info_side_effect_fixture():
+def addon_info_side_effect_fixture() -> Any:
     """Return the add-on info side effect."""
-    return None  # noqa: RET501
+    return None
 
 
 @pytest.fixture(name="addon_info")
@@ -44,9 +45,9 @@ def mock_addon_info(addon_info_side_effect):
 
 
 @pytest.fixture(name="addon_store_info_side_effect")
-def addon_store_info_side_effect_fixture():
+def addon_store_info_side_effect_fixture() -> Any:
     """Return the add-on store info side effect."""
-    return None  # noqa: RET501
+    return None
 
 
 @pytest.fixture(name="addon_store_info")
@@ -205,9 +206,9 @@ def stop_addon_fixture():
 
 
 @pytest.fixture(name="restart_addon_side_effect")
-def restart_addon_side_effect_fixture():
+def restart_addon_side_effect_fixture() -> Any:
     """Return the restart add-on options side effect."""
-    return None  # noqa: RET501
+    return None
 
 
 @pytest.fixture(name="restart_addon")
