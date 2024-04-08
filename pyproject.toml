@@ -724,7 +724,6 @@ ignore = [
     "PYI036",
     "PYI041",
     "RET503",
-    "RET502",
     "RET501",
     "TRY002",
     "TRY301"
