@@ -4,7 +4,6 @@ import asyncio
 from collections.abc import Generator
 from copy import copy
 from ipaddress import ip_address
-from typing import Any
 from unittest.mock import DEFAULT, MagicMock, call, patch
 
 import aiohttp
@@ -84,7 +83,7 @@ def discovery_info_fixture():
 
 
 @pytest.fixture(name="discovery_info_side_effect")
-def discovery_info_side_effect_fixture() -> Any:
+def discovery_info_side_effect_fixture() -> HassioAPIError | None:
     """Return the discovery info from the supervisor."""
     return None
 

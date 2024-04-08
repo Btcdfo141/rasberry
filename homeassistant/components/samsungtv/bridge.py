@@ -323,9 +323,9 @@ class SamsungTVLegacyBridge(SamsungTVBridge):
             LOGGER.debug("Failing config: %s, error: %s", config, err)
             return RESULT_CANNOT_CONNECT
 
-    async def async_device_info(self) -> None:
+    async def async_device_info(self) -> dict[str, Any] | None:
         """Try to gather infos of this device."""
-        return
+        return None
 
     def _get_remote(self) -> Remote:
         """Create or return a remote control instance."""

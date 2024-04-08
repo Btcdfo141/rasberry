@@ -28,12 +28,12 @@ from tests.typing import ClientSessionGenerator, WebSocketGenerator
 
 
 @pytest.fixture(name="frozen_time")
-def mock_frozen_time() -> None:
+def mock_frozen_time() -> str | None:
     """Fixture to set a frozen time used in tests.
 
     This is needed so that it can run before other fixtures.
     """
-    return
+    return None
 
 
 @pytest.fixture(autouse=True)

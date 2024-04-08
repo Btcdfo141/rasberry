@@ -113,7 +113,6 @@ class NeurioData:
             self._active_power = sample["consumptionPower"]
         except (requests.exceptions.RequestException, ValueError, KeyError):
             _LOGGER.warning("Could not update current power usage")
-            return
 
     def get_daily_usage(self) -> None:
         """Return current daily power usage."""
@@ -129,7 +128,6 @@ class NeurioData:
             )
         except (requests.exceptions.RequestException, ValueError, KeyError):
             _LOGGER.warning("Could not update daily power usage")
-            return
 
         for result in history:
             kwh += result["consumptionEnergy"] / 3600000

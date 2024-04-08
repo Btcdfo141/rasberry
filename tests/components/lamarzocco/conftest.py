@@ -111,7 +111,6 @@ def mock_lamarzocco(
             callback: MagicMock, use_sigterm_handler: MagicMock
         ) -> None:
             """Mock the websocket connect method."""
-            return
 
         lamarzocco.lm_local_api.websocket_connect = websocket_connect_mock
 

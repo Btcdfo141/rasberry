@@ -122,7 +122,6 @@ class FakeSubscriber(GoogleNestSubscriber):
 
     def stop_async(self) -> None:
         """No-op to stop the subscriber."""
-        return
 
     async def async_receive_event(self, event_message: EventMessage):
         """Simulate a received pubsub message, invoked by tests."""

@@ -61,7 +61,7 @@ def warning_caplog(caplog):
 
 
 @pytest.fixture
-def subscriber_side_effect() -> Any:
+def subscriber_side_effect() -> Exception | None:
     """Fixture to inject failures into FakeSubscriber start."""
     return None
 

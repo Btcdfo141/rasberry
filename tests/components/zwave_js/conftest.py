@@ -4,7 +4,6 @@ import asyncio
 import copy
 import io
 import json
-from typing import Any
 from unittest.mock import DEFAULT, AsyncMock, patch
 
 import pytest
@@ -13,6 +12,7 @@ from zwave_js_server.model.driver import Driver
 from zwave_js_server.model.node import Node
 from zwave_js_server.version import VersionInfo
 
+from homeassistant.components.hassio.handler import HassioAPIError
 from homeassistant.core import HomeAssistant
 
 from tests.common import MockConfigEntry, load_fixture
@@ -21,7 +21,7 @@ from tests.common import MockConfigEntry, load_fixture
 
 
 @pytest.fixture(name="addon_info_side_effect")
-def addon_info_side_effect_fixture() -> Any:
+def addon_info_side_effect_fixture() -> HassioAPIError | None:
     """Return the add-on info side effect."""
     return None
 
@@ -45,7 +45,7 @@ def mock_addon_info(addon_info_side_effect):
 
 
 @pytest.fixture(name="addon_store_info_side_effect")
-def addon_store_info_side_effect_fixture() -> Any:
+def addon_store_info_side_effect_fixture() -> HassioAPIError | None:
     """Return the add-on store info side effect."""
     return None
 
@@ -206,7 +206,9 @@ def stop_addon_fixture():
 
 
 @pytest.fixture(name="restart_addon_side_effect")
-def restart_addon_side_effect_fixture() -> Any:
+def restart_addon_side_effect_fixture() -> (
+    tuple[HassioAPIError | None, HassioAPIError | None] | None
+):
     """Return the restart add-on options side effect."""
     return None
 
