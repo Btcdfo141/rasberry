@@ -45,7 +45,7 @@ class TellstickCover(TellstickDevice, CoverEntity):
     """Representation of a Tellstick cover."""
 
     @property
-    def is_closed(self) -> None:
+    def is_closed(self) -> bool | None:
         """Return the current position of the cover is not possible."""
         return None
 

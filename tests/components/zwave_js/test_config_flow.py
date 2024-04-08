@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import Generator
 from copy import copy
 from ipaddress import ip_address
+from typing import Any
 from unittest.mock import DEFAULT, MagicMock, call, patch
 
 import aiohttp
@@ -83,7 +84,7 @@ def discovery_info_fixture():
 
 
 @pytest.fixture(name="discovery_info_side_effect")
-def discovery_info_side_effect_fixture():
+def discovery_info_side_effect_fixture() -> Any:
     """Return the discovery info from the supervisor."""
     return None
 
@@ -102,7 +103,7 @@ def mock_get_addon_discovery_info(discovery_info, discovery_info_side_effect):
 @pytest.fixture(name="server_version_side_effect")
 def server_version_side_effect_fixture():
     """Return the server version side effect."""
-    return None
+    return
 
 
 @pytest.fixture(name="get_server_version", autouse=True)

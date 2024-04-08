@@ -944,7 +944,7 @@ class WeatherEntity(Entity, PostInit, cached_properties=CACHED_PROPERTIES_WITH_A
         forecast_type: Literal["daily", "hourly", "twice_daily"],
     ) -> None:
         """Start subscription to forecast_type."""
-        return None
+        return
 
     @callback
     def _async_subscription_ended(
@@ -952,7 +952,7 @@ class WeatherEntity(Entity, PostInit, cached_properties=CACHED_PROPERTIES_WITH_A
         forecast_type: Literal["daily", "hourly", "twice_daily"],
     ) -> None:
         """End subscription to forecast_type."""
-        return None
+        return
 
     @final
     @callback

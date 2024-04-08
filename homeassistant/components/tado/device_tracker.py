@@ -200,12 +200,12 @@ class TadoDeviceTrackerEntity(TrackerEntity):
         return STATE_HOME if self._active else STATE_NOT_HOME
 
     @property
-    def latitude(self) -> None:
+    def latitude(self) -> float | None:
         """Return latitude value of the device."""
         return None
 
     @property
-    def longitude(self) -> None:
+    def longitude(self) -> float | None:
         """Return longitude value of the device."""
         return None
 

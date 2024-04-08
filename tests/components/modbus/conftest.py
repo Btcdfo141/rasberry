@@ -4,6 +4,7 @@ import copy
 from dataclasses import dataclass
 from datetime import timedelta
 import logging
+from typing import Any
 from unittest import mock
 
 from freezegun.api import FrozenDateTimeFactory
@@ -85,7 +86,7 @@ def register_words_fixture():
 
 
 @pytest.fixture(name="config_addon")
-def config_addon_fixture():
+def config_addon_fixture() -> Any:
     """Add entra configuration items."""
     return None
 

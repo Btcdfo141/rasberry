@@ -3,6 +3,7 @@
 import asyncio
 import logging
 
+from aiohttp.web import Request, Response
 from httpx import ConnectTimeout
 from pypoint import PointSession
 import voluptuous as vol
@@ -158,7 +159,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 
-async def handle_webhook(hass, webhook_id, request):
+async def handle_webhook(
+    hass: HomeAssistant, webhook_id: str, request: Request
+) -> Response | None:
     """Handle webhook callback."""
     try:
         data = await request.json()
@@ -170,6 +173,8 @@ async def handle_webhook(hass, webhook_id, request):
         data["webhook_id"] = webhook_id
         async_dispatcher_send(hass, SIGNAL_WEBHOOK, data, data.get("hook_id"))
     hass.bus.async_fire(EVENT_RECEIVED, data)
+
+    return None
 
 
 class MinutPointClient:

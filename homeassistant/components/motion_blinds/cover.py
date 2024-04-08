@@ -377,7 +377,7 @@ class MotionTiltOnlyDevice(MotionTiltDevice):
         return supported_features
 
     @property
-    def current_cover_position(self) -> None:
+    def current_cover_position(self) -> int | None:
         """Return current position of cover."""
         return None
 

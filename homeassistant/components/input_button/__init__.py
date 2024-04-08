@@ -177,7 +177,7 @@ class InputButton(collection.CollectionEntity, ButtonEntity, RestoreEntity):
         Left emtpty intentionally.
         The input button itself doesn't trigger anything.
         """
-        return None
+        return
 
     async def async_update_config(self, config: ConfigType) -> None:
         """Handle when the config is updated."""

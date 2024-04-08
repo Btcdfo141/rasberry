@@ -5,6 +5,7 @@ import hmac
 import json
 import logging
 
+from aiohttp.web import Request, Response
 import voluptuous as vol
 
 from homeassistant.components import webhook
@@ -48,7 +49,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
-async def handle_webhook(hass, webhook_id, request):
+async def handle_webhook(
+    hass: HomeAssistant, webhook_id: str, request: Request
+) -> Response | None:
     """Handle incoming webhook with Mailgun inbound messages."""
     body = await request.text()
     try:
@@ -63,12 +66,14 @@ async def handle_webhook(hass, webhook_id, request):
     ):
         data["webhook_id"] = webhook_id
         hass.bus.async_fire(MESSAGE_RECEIVED, data)
-        return
+        return None
 
     _LOGGER.warning(
         "Mailgun webhook received an unauthenticated message - webhook_id: %s",
         webhook_id,
     )
+
+    return None
 
 
 async def verify_webhook(hass, token=None, timestamp=None, signature=None):
