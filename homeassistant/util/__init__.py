@@ -132,13 +132,11 @@ class Throttle:
 
             async def throttled_value() -> None:
                 """Stand-in function for when real func is being throttled."""
-                return
 
         else:
 
             def throttled_value() -> None:  # type: ignore[misc]
                 """Stand-in function for when real func is being throttled."""
-                return
 
         if self.limit_no_throttle is not None:
             method = Throttle(self.limit_no_throttle)(method)
