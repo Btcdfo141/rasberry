@@ -13,7 +13,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 
-from .const import CONF_CHIPID, CONF_SENSORNAME, CONF_SENSORPORT, DOMAIN
+from .const import CONF_CHIPID, CONF_ENDPOINT, CONF_SENSORPORT, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -58,47 +58,28 @@ def get_devices(api: BzuTech, page: int) -> dict[str, Any]:
     return devices
 
 
-def get_sensors(
-    api: BzuTech, devicepos: int, sensorport: int, page: int
-) -> dict[str, Any]:
-    """Get sensor names from a device on a dict for the showmenu."""
+def get_ports(api: BzuTech, chipid: str) -> dict[str, str]:
+    """Get ports with the endpoints connected to each port."""
+    ports = {}
+    ports["option1"] = "Port 1 " + str(api.get_endpoint_on(chipid, 1))
+    ports["option2"] = "Port 2 " + str(api.get_endpoint_on(chipid, 2))
+    ports["option3"] = "Port 3 " + str(api.get_endpoint_on(chipid, 3))
+    ports["option4"] = "Port 4 " + str(api.get_endpoint_on(chipid, 4))
 
-    sensors = {}
-    first = page * 4
-    last = first + 3
-    counter = 0
-    chipid = list(api.dispositivos.keys())[devicepos]
-    numSensors = len(
-        list(api.dispositivos[chipid].get_sensor_names_on(str(sensorport)))
-    )
-
-    i = 1
-
-    for name in list(api.dispositivos[chipid].get_sensor_names_on(str(sensorport))):
-        if first <= counter <= last:
-            sensors["option" + str(i)] = name
-            i = i + 1
-        counter = counter + 1
-
-    if numSensors > 4 * (page + 1):
-        sensors["option5"] = "More sensors"
-
-    return sensors
+    return ports
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for BZUTech."""
 
-    VERSION = 1
+    VERSION = 2
     api: BzuTech
     email = ""
     password = ""
     devicepage = 0
-    sensorpage = 0
     flowstep = 0
     selecteddevice = 0
     selectedport = 0
-    selectedsensor = 0
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -143,9 +124,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_portselect(user_input)
         if self.flowstep == 2:
             self.selectedport = 1
-            return await self.async_step_sensorselect(user_input)
-        if self.flowstep == 3:
-            self.selectedsensor = self.sensorpage * 4 + 0
             return await self.async_step_configend()
         return await self.async_step_option1(user_input)
 
@@ -156,9 +134,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_portselect(user_input)
         if self.flowstep == 2:
             self.selectedport = 2
-            return await self.async_step_sensorselect(user_input)
-        if self.flowstep == 3:
-            self.selectedsensor = self.sensorpage * 4 + 1
             return await self.async_step_configend()
         return await self.async_step_option2(user_input)
 
@@ -169,9 +144,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_portselect(user_input)
         if self.flowstep == 2:
             self.selectedport = 3
-            return await self.async_step_sensorselect(user_input)
-        if self.flowstep == 3:
-            self.selectedsensor = self.sensorpage * 4 + 2
             return await self.async_step_configend()
         return await self.async_step_option3(user_input)
 
@@ -182,9 +154,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_portselect(user_input)
         if self.flowstep == 2:
             self.selectedport = 4
-            return await self.async_step_sensorselect(user_input)
-        if self.flowstep == 3:
-            self.selectedsensor = self.sensorpage * 4 + 3
             return await self.async_step_configend()
         return await self.async_step_option4(user_input)
 
@@ -193,12 +162,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if self.flowstep == 1:
             self.devicepage = self.devicepage + 1
             return await self.async_step_dispselect(user_input)
-        if self.flowstep == 2:
-            self.selectedport = 5
-            return await self.async_step_sensorselect(user_input)
-        if self.flowstep == 3:
-            self.sensorpage = self.sensorpage + 1
-            return await self.async_step_sensorselect(user_input)
         return await self.async_step_option5(user_input)
 
     async def async_step_portselect(self, user_input) -> FlowResult:
@@ -206,24 +169,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.flowstep = 2
         return self.async_show_menu(
             step_id="portselect",
-            menu_options={
-                "option1": "Port 1",
-                "option2": "Port 2",
-                "option3": "Port 3",
-                "option4": "Port 4",
-            },
-        )
-
-    async def async_step_sensorselect(self, user_input) -> FlowResult:
-        """Sensor Selection."""
-        self.flowstep = 3
-        return self.async_show_menu(
-            step_id="sensorselect",
-            menu_options=get_sensors(
-                self.api,
-                self.selecteddevice,
-                self.selectedport,
-                self.sensorpage,
+            menu_options=get_ports(
+                self.api, self.api.get_device_names()[int(self.selecteddevice)]
             ),
         )
 
@@ -236,10 +183,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         user_input[CONF_CHIPID] = str(chipid)
         user_input[CONF_SENSORPORT] = str(self.selectedport)
         user_input[CONF_EMAIL] = self.email
+        user_input[CONF_ENDPOINT] = api.get_endpoint_on(
+            user_input[CONF_CHIPID], self.selectedport
+        )
         user_input[CONF_PASSWORD] = self.password
-        user_input[CONF_SENSORNAME] = api.dispositivos[chipid].get_sensor_names_on(
-            str(user_input[CONF_SENSORPORT])
-        )[self.selectedsensor]
 
         return self.async_create_entry(title=user_input[CONF_CHIPID], data=user_input)
 

@@ -1,4 +1,9 @@
 """Sensor for BZUTech integration."""
+
+from datetime import timedelta
+
+from bzutech import BzuTech
+
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -22,10 +27,11 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.update_coordinator import UpdateFailed
 
-from . import BzuCloudCoordinator
-from .const import CONF_CHIPID, CONF_SENSORNAME, CONF_SENSORPORT, DOMAIN
+from .const import CONF_CHIPID, CONF_ENDPOINT, CONF_SENSORPORT, DOMAIN
+
+SCAN_INTERVAL = timedelta(seconds=30)
 
 SENSOR_TYPE: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
@@ -123,7 +129,7 @@ SENSOR_TYPE: tuple[SensorEntityDescription, ...] = (
         key="M01",
         translation_key="pm01",
         device_class=SensorDeviceClass.PM1,
-        native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION,
+        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SensorEntityDescription(
@@ -206,8 +212,8 @@ SENSOR_TYPE: tuple[SensorEntityDescription, ...] = (
     SensorEntityDescription(
         key="C05",
         translation_key="pm05",
-        device_class=SensorDeviceClass.AQI,
-        native_unit_of_measurement=None,
+        device_class=SensorDeviceClass.PM10,
+        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     SensorEntityDescription(
@@ -261,6 +267,44 @@ SENSOR_TYPE: tuple[SensorEntityDescription, ...] = (
     ),
 )
 
+EndpointsSensors = {
+    "EP101": ["SHT20-TMP", "SHT20-HUM", "BH1750-LUM"],
+    "EP111": ["SHT20-TMP", "SHT20-HUM", "BH1750-LUM", "SHT30-TMP", "SHT30-HUM"],
+    "EP121": ["SHT20-TMP", "SHT20-HUM", "BH1750-LUM", "DOOR-DOR"],
+    "EP200": [
+        "SHT20-TMP",
+        "SHT20-HUM",
+        "SGP30-VOC",
+        "SGP30-CO2",
+        "SPS30-M01",
+        "SPS30-M25",
+        "SPS30-M40",
+        "SPS30-M10",
+    ],
+    "EP300": ["RTZSBZ-SND"],
+    "EP400": [
+        "ADS7878-VRA",
+        "ADS7878-VRB",
+        "ADS7878-VRC",
+        "ADS7878-CRA",
+        "ADS7878-CRB",
+        "ADS7878-CRC",
+        "ADS7878-CRN",
+        "ADS7878-APA",
+        "ADS7878-APB",
+        "ADS7878-APC",
+        "ADS7878-PPA",
+        "ADS7878-PPB",
+        "ADS7878-PPC",
+        "ADS7878-RPA",
+        "ADS7878-RPB",
+        "ADS7878-RPC",
+        "ADS7878-ACA",
+        "ADS7878-BCA",
+        "ADS7878-CCA",
+    ],
+}
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -268,42 +312,62 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Do entry Setup."""
-    coordinator: BzuCloudCoordinator = hass.data[DOMAIN][entry.entry_id]
+    bzu_api = hass.data[DOMAIN][entry.entry_id]
     sensors = []
-    for description in SENSOR_TYPE:
-        if description.key == entry.data[CONF_SENSORNAME].split("-")[1]:
-            sensors.append(BzuEntity(coordinator, entry, description=description))
+
+    for sensor in EndpointsSensors[entry.data[CONF_ENDPOINT]]:
+        sense = sensor + "-" + entry.data[CONF_SENSORPORT]
+        for description in SENSOR_TYPE:
+            if description.key == sense.split("-")[1]:
+                sensors.append(
+                    BzuEntity(bzu_api, sense, entry, description=description)
+                )
 
     async_add_entities(sensors, update_before_add=True)
 
 
-class BzuEntity(CoordinatorEntity[BzuCloudCoordinator], SensorEntity):
+class BzuEntity(SensorEntity):
     """Setup sensor entity."""
 
     def __init__(
-        self, coordinator, entry: ConfigEntry, description: SensorEntityDescription
+        self,
+        api: BzuTech,
+        sensorname,
+        entry: ConfigEntry,
+        description: SensorEntityDescription,
     ) -> None:
         """Do Sensor configuration."""
-        super().__init__(coordinator)
 
         self._attr_unique_id = (
             entry.data[CONF_CHIPID]
-            + entry.data[CONF_SENSORNAME].split("-")[1]
+            + sensorname.split("-")[1]
             + entry.data[CONF_SENSORPORT]
         )
         self.chipid = entry.data[CONF_CHIPID]
+        self.sensorname = sensorname
+        self.api: BzuTech = api
+        self.api.dispositivos[self.chipid].sensores.keys()
         self.entity_description = description
         self._attr_translation_key = description.key
-        self._attr_native_value = coordinator.data
         self._attr_is_on = True
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, "ESP-" + self.chipid)},
             suggested_area="Room",
             name="Gateway " + self.chipid,
             entry_type=DeviceEntryType("service"),
-            manufacturer="BZU Tecnologia",
+            manufacturer="Bzu Tech",
             hw_version="1.0",
             model="ESP-" + self.chipid,
-            serial_number=self.chipid,
+            serial_number=self.chipid + "P" + entry.data[CONF_SENSORPORT],
             sw_version="1.0",
         )
+
+    async def async_update(self) -> None:
+        """Update entity values."""
+        try:
+            self._attr_native_value = await self.api.get_reading(
+                str(self.chipid), self.sensorname
+            )
+        except (KeyError, TypeError) as error:
+            await self.api.start()
+            raise UpdateFailed(error) from error

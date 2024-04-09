@@ -615,7 +615,7 @@ btsmarthub-devicelist==0.2.3
 buienradar==1.0.5
 
 # homeassistant.components.bzutech
-bzutech==1.0.11
+bzutech==2.3.2
 
 # homeassistant.components.dhcp
 cached_ipaddress==0.3.0
