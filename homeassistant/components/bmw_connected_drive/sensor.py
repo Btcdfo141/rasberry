@@ -49,6 +49,7 @@ SENSOR_TYPES: list[BMWSensorEntityDescription] = [
         device_class=SensorDeviceClass.CURRENT,
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         entity_registry_enabled_default=False,
+        suggested_display_precision=0,
         is_available=lambda v: v.is_lsc_enabled and v.has_electric_drivetrain,
     ),
     BMWSensorEntityDescription(
@@ -78,6 +79,7 @@ SENSOR_TYPES: list[BMWSensorEntityDescription] = [
         key_class="fuel_and_battery",
         device_class=SensorDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
+        suggested_display_precision=0,
         is_available=lambda v: v.is_lsc_enabled and v.has_electric_drivetrain,
     ),
     BMWSensorEntityDescription(
@@ -87,6 +89,7 @@ SENSOR_TYPES: list[BMWSensorEntityDescription] = [
         device_class=SensorDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
         is_available=lambda v: v.is_lsc_enabled and v.has_electric_drivetrain,
     ),
     # --- Specific ---
@@ -96,6 +99,7 @@ SENSOR_TYPES: list[BMWSensorEntityDescription] = [
         device_class=SensorDeviceClass.DISTANCE,
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         state_class=SensorStateClass.TOTAL_INCREASING,
+        suggested_display_precision=0,
     ),
     BMWSensorEntityDescription(
         key="remaining_range_total",
@@ -104,6 +108,7 @@ SENSOR_TYPES: list[BMWSensorEntityDescription] = [
         device_class=SensorDeviceClass.DISTANCE,
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
     ),
     BMWSensorEntityDescription(
         key="remaining_range_electric",
@@ -112,6 +117,7 @@ SENSOR_TYPES: list[BMWSensorEntityDescription] = [
         device_class=SensorDeviceClass.DISTANCE,
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
         is_available=lambda v: v.is_lsc_enabled and v.has_electric_drivetrain,
     ),
     BMWSensorEntityDescription(
@@ -121,6 +127,7 @@ SENSOR_TYPES: list[BMWSensorEntityDescription] = [
         device_class=SensorDeviceClass.DISTANCE,
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
         is_available=lambda v: v.is_lsc_enabled and v.has_combustion_drivetrain,
     ),
     BMWSensorEntityDescription(
@@ -130,6 +137,7 @@ SENSOR_TYPES: list[BMWSensorEntityDescription] = [
         device_class=SensorDeviceClass.VOLUME,
         native_unit_of_measurement=UnitOfVolume.LITERS,
         state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
         is_available=lambda v: v.is_lsc_enabled and v.has_combustion_drivetrain,
     ),
     BMWSensorEntityDescription(
@@ -138,6 +146,7 @@ SENSOR_TYPES: list[BMWSensorEntityDescription] = [
         key_class="fuel_and_battery",
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
         is_available=lambda v: v.is_lsc_enabled and v.has_combustion_drivetrain,
     ),
     BMWSensorEntityDescription(
