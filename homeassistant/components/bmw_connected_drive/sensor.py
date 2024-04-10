@@ -6,7 +6,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 import logging
-from typing import cast
 
 from bimmer_connected.models import ValueWithUnit
 from bimmer_connected.vehicle import MyBMWVehicle
@@ -26,7 +25,6 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import StateType
 
 from . import BMWBaseEntity
 from .const import CLIMATE_ACTIVITY_STATE, DOMAIN
@@ -202,5 +200,5 @@ class BMWSensor(BMWBaseEntity, SensorEntity):
             )
         if isinstance(state, (ValueWithUnit, Enum)):
             state = state.value
-        self._attr_native_value = cast(StateType, state)
+        self._attr_native_value = state
         super()._handle_coordinator_update()
