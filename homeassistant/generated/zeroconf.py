@@ -828,4 +828,10 @@ ZEROCONF = {
             "domain": "zwave_js",
         },
     ],
+    "_czc._tcp.local.": [
+        {
+            "domain": "zha",
+            "name": "czc*",
+        },
+    ],
 }
