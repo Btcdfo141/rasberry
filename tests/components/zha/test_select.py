@@ -63,7 +63,7 @@ def select_select_only():
 async def multiterm_zc0101_binary_output(hass, zigpy_device_mock):
     """Binary Output fixture."""
 
-    zigpy_device = zigpy_device_mock(
+    return zigpy_device_mock(
         {
             1: {
                 SIG_EP_INPUT: [
@@ -102,8 +102,6 @@ async def multiterm_zc0101_binary_output(hass, zigpy_device_mock):
         manufacturer="MultiTerm",
         model="ZC0101",
     )
-
-    return zigpy_device
 
 
 @pytest.fixture
