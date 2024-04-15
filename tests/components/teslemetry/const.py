@@ -18,6 +18,7 @@ LIVE_STATUS = load_json_object_fixture("live_status.json", DOMAIN)
 RESPONSE_OK = {"response": {}, "error": None}
 
 METADATA = {
+    "uid": "abc-123",
     "region": "NA",
     "scopes": [
         "openid",
@@ -31,6 +32,7 @@ METADATA = {
     ],
 }
 METADATA_NOSCOPE = {
+    "uid": "abc-123",
     "region": "NA",
     "scopes": ["openid", "offline_access", "vehicle_device_data"],
 }
