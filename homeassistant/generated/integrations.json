@@ -4737,7 +4737,7 @@
     },
     "pyload": {
       "name": "pyLoad",
-      "integration_type": "hub",
+      "integration_type": "service",
       "config_flow": false,
       "iot_class": "local_polling"
     },
