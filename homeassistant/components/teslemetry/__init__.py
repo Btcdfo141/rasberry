@@ -17,7 +17,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import DOMAIN
+from .const import DOMAIN, LOGGER
 from .coordinator import (
     TeslemetryEnergyDataCoordinator,
     TeslemetryVehicleDataCoordinator,
