@@ -404,6 +404,12 @@ ZEROCONF = {
             "domain": "apple_tv",
         },
     ],
+    "_czc._tcp.local.": [
+        {
+            "domain": "zha",
+            "name": "czc*",
+        },
+    ],
     "_daap._tcp.local.": [
         {
             "domain": "forked_daapd",
@@ -826,12 +832,6 @@ ZEROCONF = {
     "_zwave-js-server._tcp.local.": [
         {
             "domain": "zwave_js",
-        },
-    ],
-    "_czc._tcp.local.": [
-        {
-            "domain": "zha",
-            "name": "czc*",
         },
     ],
 }
