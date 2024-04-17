@@ -9,6 +9,7 @@ import logging
 
 from bimmer_connected.models import ValueWithUnit
 from bimmer_connected.vehicle import MyBMWVehicle
+from bimmer_connected.vehicle.climate import ClimateActivityState
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -27,7 +28,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import BMWBaseEntity
-from .const import CLIMATE_ACTIVITY_STATE, DOMAIN
+from .const import DOMAIN
 from .coordinator import BMWDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -154,7 +155,11 @@ SENSOR_TYPES: list[BMWSensorEntityDescription] = [
         translation_key="climate_status",
         key_class="climate",
         device_class=SensorDeviceClass.ENUM,
-        options=CLIMATE_ACTIVITY_STATE,
+        options=[
+            s.value.lower()
+            for s in ClimateActivityState
+            if s != ClimateActivityState.UNKNOWN
+        ],
         is_available=lambda v: v.is_remote_climate_stop_enabled,
     ),
 ]
@@ -207,7 +212,11 @@ class BMWSensor(BMWBaseEntity, SensorEntity):
                 getattr(self.vehicle, self.entity_description.key_class),
                 self.entity_description.key,
             )
-        if isinstance(state, (ValueWithUnit, Enum)):
+        if isinstance(state, ValueWithUnit):
             state = state.value
+        if isinstance(state, Enum):
+            state = state.value.lower()
+            if state == "unknown":
+                state = None
         self._attr_native_value = state
         super()._handle_coordinator_update()
