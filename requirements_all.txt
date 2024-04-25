@@ -980,7 +980,7 @@ goslide-api==0.5.1
 gotailwind==0.2.2
 
 # homeassistant.components.govee_ble
-govee-ble==0.31.0
+govee-ble==0.31.2
 
 # homeassistant.components.govee_light_local
 govee-local-api==1.4.4
@@ -1661,7 +1661,7 @@ pyEmby==1.9
 pyHik==0.3.2
 
 # homeassistant.components.rfxtrx
-pyRFXtrx==0.31.0
+pyRFXtrx==0.31.1
 
 # homeassistant.components.sony_projector
 pySDCP==1
@@ -1818,7 +1818,7 @@ pyevilgenius==2.0.0
 pyezviz==0.2.1.2
 
 # homeassistant.components.fibaro
-pyfibaro==0.7.7
+pyfibaro==0.7.8
 
 # homeassistant.components.fido
 pyfido==2.1.2
@@ -2093,7 +2093,7 @@ pyrecswitch==1.0.2
 pyrepetierng==0.1.0
 
 # homeassistant.components.risco
-pyrisco==0.6.0
+pyrisco==0.6.1
 
 # homeassistant.components.rituals_perfume_genie
 pyrituals==0.0.6

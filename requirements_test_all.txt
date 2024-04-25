@@ -803,7 +803,7 @@ googlemaps==2.5.1
 gotailwind==0.2.2
 
 # homeassistant.components.govee_ble
-govee-ble==0.31.0
+govee-ble==0.31.2
 
 # homeassistant.components.govee_light_local
 govee-local-api==1.4.4
@@ -1311,7 +1311,7 @@ pyDuotecno==2024.3.2
 pyElectra==1.2.0
 
 # homeassistant.components.rfxtrx
-pyRFXtrx==0.31.0
+pyRFXtrx==0.31.1
 
 # homeassistant.components.tibber
 pyTibber==0.28.2
@@ -1417,7 +1417,7 @@ pyevilgenius==2.0.0
 pyezviz==0.2.1.2
 
 # homeassistant.components.fibaro
-pyfibaro==0.7.7
+pyfibaro==0.7.8
 
 # homeassistant.components.fido
 pyfido==2.1.2
@@ -1635,7 +1635,7 @@ pyqwikswitch==0.93
 pyrainbird==4.0.2
 
 # homeassistant.components.risco
-pyrisco==0.6.0
+pyrisco==0.6.1
 
 # homeassistant.components.rituals_perfume_genie
 pyrituals==0.0.6
