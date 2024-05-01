@@ -25,19 +25,12 @@ from homeassistant.const import (
     CONF_PORT,
     CONF_PROTOCOL,
     CONF_USERNAME,
-    EVENT_HOMEASSISTANT_STARTED,
     EVENT_HOMEASSISTANT_STOP,
 )
-from homeassistant.core import (
-    CALLBACK_TYPE,
-    CoreState,
-    Event,
-    HassJob,
-    HomeAssistant,
-    callback,
-)
+from homeassistant.core import CALLBACK_TYPE, Event, HassJob, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.loader import bind_hass
 from homeassistant.util.async_ import create_eager_task
@@ -428,24 +421,21 @@ class MQTT:
             UNSUBSCRIBE_COOLDOWN, self._async_perform_unsubscribes
         )
         self._pending_unsubscribes: set[str] = set()  # topic
-
-        if self.hass.state is CoreState.running:
-            self._ha_started.set()
-        else:
-
-            @callback
-            def ha_started(_: Event) -> None:
-                self._ha_started.set()
-
-            self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, ha_started)
-
-        async def async_stop_mqtt(_event: Event) -> None:
-            """Stop MQTT component."""
-            await self.async_disconnect()
-
-        self._cleanup_on_unload.append(
-            hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, async_stop_mqtt)
+        self._cleanup_on_unload.extend(
+            (
+                async_at_started(hass, self._async_ha_started),
+                hass.bus.async_listen(EVENT_HOMEASSISTANT_STOP, self._async_ha_stop),
+            )
         )
+
+    @callback
+    def _async_ha_started(self, _hass: HomeAssistant) -> None:
+        """Handle HA started."""
+        self._ha_started.set()
+
+    async def _async_ha_stop(self, _event: Event) -> None:
+        """Handle HA stop."""
+        await self.async_disconnect()
 
     def start(
         self,
@@ -877,6 +867,22 @@ class MQTT:
 
         await self._wait_for_mid(mid)
 
+    async def _async_resubscribe_and_publish_birth_message(
+        self, birth_message: PublishMessage
+    ) -> None:
+        """Resubscribe to all topics and publish birth message."""
+        await self._async_perform_subscriptions()
+        await self._ha_started.wait()  # Wait for Home Assistant to start
+        await self._discovery_cooldown()  # Wait for MQTT discovery to cool down
+        # Update subscribe cooldown period to a shorter time
+        self._subscribe_debouncer.set_timeout(SUBSCRIBE_COOLDOWN)
+        await self.async_publish(
+            topic=birth_message.topic,
+            payload=birth_message.payload,
+            qos=birth_message.qos,
+            retain=birth_message.retain,
+        )
+
     @callback
     def _async_mqtt_on_connect(
         self,
@@ -918,36 +924,33 @@ class MQTT:
             result_code,
         )
 
-        self.hass.async_create_task(self._async_resubscribe())
-
+        self._async_queue_resubscribe()
+        birth: dict[str, Any]
         if birth := self.conf.get(CONF_BIRTH_MESSAGE, DEFAULT_BIRTH):
-
-            async def publish_birth_message(birth_message: PublishMessage) -> None:
-                await self._ha_started.wait()  # Wait for Home Assistant to start
-                await self._discovery_cooldown()  # Wait for MQTT discovery to cool down
-                # Update subscribe cooldown period to a shorter time
-                self._subscribe_debouncer.set_timeout(SUBSCRIBE_COOLDOWN)
-                await self.async_publish(
-                    topic=birth_message.topic,
-                    payload=birth_message.payload,
-                    qos=birth_message.qos,
-                    retain=birth_message.retain,
-                )
-
             birth_message = PublishMessage(**birth)
             self.config_entry.async_create_background_task(
                 self.hass,
-                publish_birth_message(birth_message),
-                name="mqtt birth message",
+                self._async_resubscribe_and_publish_birth_message(birth_message),
+                name="mqtt re-subscribe and birth",
             )
         else:
             # Update subscribe cooldown period to a shorter time
+            self.config_entry.async_create_background_task(
+                self.hass,
+                self._async_perform_subscriptions(),
+                name="mqtt re-subscribe",
+            )
             self._subscribe_debouncer.set_timeout(SUBSCRIBE_COOLDOWN)
 
         self._async_connection_result(True)
 
-    async def _async_resubscribe(self) -> None:
-        """Resubscribe on reconnect."""
+    @callback
+    def _async_queue_resubscribe(self) -> None:
+        """Queue subscriptions on reconnect.
+
+        self._async_perform_subscriptions must be called
+        after this method to actually subscribe.
+        """
         self._max_qos.clear()
         self._retained_topics.clear()
         # Group subscriptions to only re-subscribe once for each topic.
@@ -962,7 +965,6 @@ class MQTT:
             ],
             queue_only=True,
         )
-        await self._async_perform_subscriptions()
 
     @lru_cache(None)  # pylint: disable=method-cache-max-size-none
     def _matching_subscriptions(self, topic: str) -> list[Subscription]:
@@ -1049,7 +1051,9 @@ class MQTT:
         # The callback signature for on_unsubscribe is different from on_subscribe
         # see https://github.com/eclipse/paho.mqtt.python/issues/687
         # properties and reasoncodes are not used in Home Assistant
-        self.hass.async_create_task(self._mqtt_handle_mid(mid))
+        self.config_entry.async_create_task(
+            self.hass, self._mqtt_handle_mid(mid), name=f"mqtt handle mid {mid}"
+        )
 
     async def _mqtt_handle_mid(self, mid: int) -> None:
         # Create the mid event if not created, either _mqtt_handle_mid or _wait_for_mid
