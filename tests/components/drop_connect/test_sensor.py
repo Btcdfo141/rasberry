@@ -4,6 +4,9 @@ from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 
 from .common import (
+    TEST_DATA_ALERT,
+    TEST_DATA_ALERT_RESET,
+    TEST_DATA_ALERT_TOPIC,
     TEST_DATA_FILTER,
     TEST_DATA_FILTER_RESET,
     TEST_DATA_FILTER_TOPIC,
@@ -25,6 +28,7 @@ from .common import (
     TEST_DATA_SOFTENER,
     TEST_DATA_SOFTENER_RESET,
     TEST_DATA_SOFTENER_TOPIC,
+    config_entry_alert,
     config_entry_filter,
     config_entry_hub,
     config_entry_leak,
@@ -97,6 +101,31 @@ async def test_sensors_hub(hass: HomeAssistant, mqtt_mock: MqttMockHAClient) -> 
     battery_sensor = hass.states.get(battery_sensor_name)
     assert battery_sensor
     assert battery_sensor.state == "50"
+
+
+async def test_sensors_alert(hass: HomeAssistant, mqtt_mock: MqttMockHAClient) -> None:
+    """Test DROP sensors for alerts."""
+    entry = config_entry_alert()
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+
+    battery_sensor_name = "sensor.alert_battery"
+    assert hass.states.get(battery_sensor_name).state == STATE_UNKNOWN
+    temp_sensor_name = "sensor.alert_temperature"
+    assert hass.states.get(temp_sensor_name).state == STATE_UNKNOWN
+
+    async_fire_mqtt_message(hass, TEST_DATA_ALERT_TOPIC, TEST_DATA_ALERT_RESET)
+    await hass.async_block_till_done()
+    async_fire_mqtt_message(hass, TEST_DATA_ALERT_TOPIC, TEST_DATA_ALERT)
+    await hass.async_block_till_done()
+
+    battery_sensor = hass.states.get(battery_sensor_name)
+    assert battery_sensor
+    assert battery_sensor.state == "100"
+
+    temp_sensor = hass.states.get(temp_sensor_name)
+    assert temp_sensor
+    assert temp_sensor.state == "20.1111111111111"  # °C
 
 
 async def test_sensors_leak(hass: HomeAssistant, mqtt_mock: MqttMockHAClient) -> None:
