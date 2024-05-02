@@ -6,7 +6,9 @@ from collections.abc import Sequence
 import logging
 from typing import Any, Final, cast
 
-from kasa import SmartBulb, SmartLightStrip
+from kasa import Device
+from kasa.iot import IotBulb, IotDevice, IotLightStrip
+from kasa.smart import SmartDevice
 import voluptuous as vol
 
 from homeassistant.components.light import (
@@ -138,10 +140,10 @@ async def async_setup_entry(
     data: TPLinkData = hass.data[DOMAIN][config_entry.entry_id]
     parent_coordinator = data.parent_coordinator
     device = parent_coordinator.device
-    if device.is_light_strip:
-        async_add_entities(
-            [TPLinkSmartLightStrip(cast(SmartLightStrip, device), parent_coordinator)]
-        )
+    entities: list[TPLinkSmartBulb | TPLinkSmartLightStrip] = []
+
+    if device.is_light_strip and isinstance(device, IotLightStrip):
+        entities.append(TPLinkSmartLightStrip(device, parent_coordinator))
         platform = entity_platform.async_get_current_platform()
         platform.async_register_entity_service(
             SERVICE_RANDOM_EFFECT,
@@ -153,10 +155,30 @@ async def async_setup_entry(
             SEQUENCE_EFFECT_DICT,
             "async_set_sequence_effect",
         )
-    elif device.is_bulb or device.is_dimmer:
-        async_add_entities(
-            [TPLinkSmartBulb(cast(SmartBulb, device), parent_coordinator)]
+    elif (device.is_bulb or device.is_dimmer) and isinstance(device, ()):
+        tdevice: IotBulb | SmartDevice = (
+            cast(IotBulb, device)
+            if isinstance(device, IotDevice)
+            else cast(SmartDevice, device)
         )
+        (entities.append(TPLinkSmartBulb(tdevice, parent_coordinator)))
+    for child in device.children:
+        if child.is_color or child.is_dimmable:
+            tchild: IotBulb | SmartDevice = (
+                cast(IotBulb, child)
+                if isinstance(child, IotDevice)
+                else cast(SmartDevice, child)
+            )
+            entities.append(TPLinkSmartBulb(tchild, parent_coordinator, parent=device))
+            # Add light control to the parent if the parent is not a light.
+            if not (device.is_bulb or device.is_dimmer or device.is_light_strip):
+                entities.append(
+                    TPLinkSmartBulb(
+                        tchild, parent_coordinator, parent=device, add_to_parent=True
+                    )
+                )
+    if entities:
+        async_add_entities(entities)
 
 
 class TPLinkSmartBulb(CoordinatedTPLinkEntity, LightEntity):
@@ -166,23 +188,26 @@ class TPLinkSmartBulb(CoordinatedTPLinkEntity, LightEntity):
     _attr_name = None
     _fixed_color_mode: ColorMode | None = None
 
-    device: SmartBulb
+    device: IotBulb | SmartDevice
 
     def __init__(
         self,
-        device: SmartBulb,
+        device: IotBulb | SmartDevice,
         coordinator: TPLinkDataUpdateCoordinator,
+        parent: Device | None = None,
+        *,
+        add_to_parent: bool = False,
     ) -> None:
         """Initialize the switch."""
-        super().__init__(device, coordinator)
+        super().__init__(device, coordinator, parent, add_to_parent=add_to_parent)
         # For backwards compat with pyHS100
-        if device.is_dimmer:
+        if device.is_dimmer and isinstance(device, IotDevice) and not add_to_parent:
             # Dimmers used to use the switch format since
             # pyHS100 treated them as SmartPlug but the old code
             # created them as lights
             # https://github.com/home-assistant/core/blob/2021.9.7/homeassistant/components/tplink/common.py#L86
             self._attr_unique_id = legacy_device_id(device)
-        else:
+        elif not add_to_parent:
             self._attr_unique_id = device.mac.replace(":", "").upper()
         modes: set[ColorMode] = {ColorMode.ONOFF}
         if device.is_variable_color_temp:
@@ -312,7 +337,7 @@ class TPLinkSmartBulb(CoordinatedTPLinkEntity, LightEntity):
 class TPLinkSmartLightStrip(TPLinkSmartBulb):
     """Representation of a TPLink Smart Light Strip."""
 
-    device: SmartLightStrip
+    device: IotLightStrip
     _attr_supported_features = LightEntityFeature.TRANSITION | LightEntityFeature.EFFECT
 
     @callback

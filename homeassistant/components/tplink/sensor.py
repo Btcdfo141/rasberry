@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import cast
 
-from kasa import SmartDevice
+from kasa import Device, Feature
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -16,6 +16,7 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ATTR_VOLTAGE,
+    EntityCategory,
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
     UnitOfEnergy,
@@ -92,7 +93,7 @@ ENERGY_SENSORS: tuple[TPLinkSensorEntityDescription, ...] = (
 
 
 def async_emeter_from_device(
-    device: SmartDevice, description: TPLinkSensorEntityDescription
+    device: Device, description: TPLinkSensorEntityDescription
 ) -> float | None:
     """Map a sensor key to the device attribute."""
     if attr := description.emeter_attr:
@@ -109,7 +110,7 @@ def async_emeter_from_device(
 
 
 def _async_sensors_for_device(
-    device: SmartDevice,
+    device: Device,
     coordinator: TPLinkDataUpdateCoordinator,
     has_parent: bool = False,
 ) -> list[SmartPlugSensor]:
@@ -130,9 +131,12 @@ async def async_setup_entry(
     data: TPLinkData = hass.data[DOMAIN][config_entry.entry_id]
     parent_coordinator = data.parent_coordinator
     children_coordinators = data.children_coordinators
-    entities: list[SmartPlugSensor] = []
+    entities: list[SmartPlugSensor | TPLinkSensor] = []
     parent = parent_coordinator.device
-    if not parent.has_emeter:
+    has_on_since = "on_since" in parent.features or any(
+        "on_since" in child.features for child in parent.children
+    )
+    if not has_on_since and not parent.has_emeter:
         return
 
     if parent.is_strip:
@@ -141,10 +145,59 @@ async def async_setup_entry(
             entities.extend(
                 _async_sensors_for_device(child, children_coordinators[idx], True)
             )
-    else:
+    elif parent.has_emeter:
         entities.extend(_async_sensors_for_device(parent, parent_coordinator))
+    if "on_since" in parent.features:
+        entities.append(
+            TPLinkSensor(parent, parent_coordinator, parent.features["on_since"])
+        )
+    entities.extend(
+        TPLinkSensor(child, parent_coordinator, on_since, parent=parent)
+        for child in parent.children
+        if (on_since := child.features.get("on_since"))
+    )
 
     async_add_entities(entities)
+
+
+class TPLinkSensor(CoordinatedTPLinkEntity, SensorEntity):
+    """Representation of a feature-based TPLink sensor."""
+
+    def __init__(
+        self,
+        device: Device,
+        coordinator: TPLinkDataUpdateCoordinator,
+        feature: Feature,
+        parent: Device | None = None,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(device, coordinator, parent=parent)
+        self._feature = feature
+        self.entity_description = SensorEntityDescription(
+            key=feature.id if feature.id else feature.name,
+            translation_key=feature.id,
+            name=feature.name,
+            icon=feature.icon,
+            native_unit_of_measurement=feature.unit,
+        )
+        self._attr_unique_id = f"{legacy_device_id(device)}_{feature.id}"
+        self._attr_entity_category = (
+            EntityCategory.CONFIG
+            if feature.attribute_setter
+            else EntityCategory.DIAGNOSTIC
+        )
+        self._async_update_attrs()
+
+    @callback
+    def _async_update_attrs(self) -> None:
+        """Update the entity's attributes."""
+        self._attr_native_value = self._feature.value
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        self._async_update_attrs()
+        super()._handle_coordinator_update()
 
 
 class SmartPlugSensor(CoordinatedTPLinkEntity, SensorEntity):
@@ -154,7 +207,7 @@ class SmartPlugSensor(CoordinatedTPLinkEntity, SensorEntity):
 
     def __init__(
         self,
-        device: SmartDevice,
+        device: Device,
         coordinator: TPLinkDataUpdateCoordinator,
         description: TPLinkSensorEntityDescription,
         has_parent: bool = False,
