@@ -1035,7 +1035,7 @@ ha-philipsjs==3.1.1
 habitipy==0.2.0
 
 # homeassistant.components.bluetooth
-habluetooth==2.8.1
+habluetooth==3.0.1
 
 # homeassistant.components.cloud
 hass-nabucasa==0.78.0
@@ -1137,7 +1137,7 @@ iglo==1.2.7
 ihcsdk==2.8.5
 
 # homeassistant.components.imgw_pib
-imgw_pib==1.0.0
+imgw_pib==1.0.1
 
 # homeassistant.components.incomfort
 incomfort-client==0.5.0
@@ -2122,9 +2122,6 @@ pysensibo==1.0.36
 # homeassistant.components.serial
 # homeassistant.components.zha
 pyserial-asyncio-fast==0.11
-
-# homeassistant.components.zha
-pyserial-asyncio==0.6
 
 # homeassistant.components.acer_projector
 # homeassistant.components.crownstone
