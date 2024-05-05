@@ -2,32 +2,38 @@
 
 import logging
 
+from aiohttp import ClientResponseError
 from habitipy.aio import HabitipyAsync
 import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
-    ATTR_NAME,
     CONF_API_KEY,
     CONF_NAME,
     CONF_SENSORS,
     CONF_URL,
     Platform,
 )
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import (
+    HomeAssistant,
+    ServiceCall,
+    ServiceResponse,
+    SupportsResponse,
+)
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.selector import ConfigEntrySelector
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
     ATTR_ARGS,
-    ATTR_DATA,
+    ATTR_CONFIG_ENTRY,
     ATTR_PATH,
     CONF_API_USER,
     DEFAULT_URL,
     DOMAIN,
-    EVENT_API_CALL_SUCCESS,
     SERVICE_API_CALL,
 )
 
@@ -80,7 +86,7 @@ PLATFORMS = [Platform.SENSOR]
 
 SERVICE_API_CALL_SCHEMA = vol.Schema(
     {
-        vol.Required(ATTR_NAME): str,
+        vol.Required(ATTR_CONFIG_ENTRY): ConfigEntrySelector(),
         vol.Required(ATTR_PATH): vol.All(cv.ensure_list, [str]),
         vol.Optional(ATTR_ARGS): dict,
     }
@@ -113,31 +119,34 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         def __call__(self, **kwargs):
             return super().__call__(websession, **kwargs)
 
-    async def handle_api_call(call: ServiceCall) -> None:
-        name = call.data[ATTR_NAME]
+    async def handle_api_call(call: ServiceCall) -> ServiceResponse:
         path = call.data[ATTR_PATH]
-        entries = hass.config_entries.async_entries(DOMAIN)
-        api = None
-        for entry in entries:
-            if entry.data[CONF_NAME] == name:
-                api = hass.data[DOMAIN].get(entry.entry_id)
-                break
-        if api is None:
-            _LOGGER.error("API_CALL: User '%s' not configured", name)
-            return
-        try:
-            for element in path:
+        entry_id: str = call.data[ATTR_CONFIG_ENTRY]
+
+        api = hass.data[DOMAIN][entry_id]
+
+        for element in path:
+            try:
                 api = api[element]
-        except KeyError:
-            _LOGGER.error(
-                "API_CALL: Path %s is invalid for API on '{%s}' element", path, element
-            )
-            return
+            except (KeyError, IndexError) as e:
+                raise ServiceValidationError(
+                    translation_domain=DOMAIN,
+                    translation_key="sevice_invalid_path",
+                    translation_placeholders={
+                        "service": f"{DOMAIN}.{SERVICE_API_CALL}",
+                        "path": "/".join(path),
+                        "element": element,
+                    },
+                ) from e
+
         kwargs = call.data.get(ATTR_ARGS, {})
-        data = await api(**kwargs)
-        hass.bus.async_fire(
-            EVENT_API_CALL_SUCCESS, {ATTR_NAME: name, ATTR_PATH: path, ATTR_DATA: data}
-        )
+
+        try:
+            data = await api(**kwargs)
+        except (ValueError, TypeError, ClientResponseError) as e:
+            raise HomeAssistantError(e) from e
+
+        return {"data": data}
 
     data = hass.data.setdefault(DOMAIN, {})
     config = entry.data
@@ -161,7 +170,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     if not hass.services.has_service(DOMAIN, SERVICE_API_CALL):
         hass.services.async_register(
-            DOMAIN, SERVICE_API_CALL, handle_api_call, schema=SERVICE_API_CALL_SCHEMA
+            DOMAIN,
+            SERVICE_API_CALL,
+            handle_api_call,
+            schema=SERVICE_API_CALL_SCHEMA,
+            supports_response=SupportsResponse.OPTIONAL,
         )
 
     return True
