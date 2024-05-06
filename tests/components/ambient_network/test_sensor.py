@@ -1,7 +1,7 @@
 """Test Ambient Weather Network sensors."""
 
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from aioambient import OpenAPI
 from aioambient.errors import RequestError
@@ -9,6 +9,7 @@ from freezegun import freeze_time
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
@@ -23,60 +24,83 @@ from tests.common import async_fire_time_changed, snapshot_platform
 async def test_sensors(
     hass: HomeAssistant,
     open_api: OpenAPI,
-    aioambient,
-    config_entry,
+    aioambient: AsyncMock,
+    config_entry: ConfigEntry,
     entity_registry: er.EntityRegistry,
     snapshot: SnapshotAssertion,
 ) -> None:
     """Test all sensors under normal operation."""
     await setup_platform(True, hass, config_entry)
-
     await snapshot_platform(hass, entity_registry, snapshot, config_entry.entry_id)
 
 
-@freeze_time("2023-11-09")
 @pytest.mark.parametrize("config_entry", ["AA:AA:AA:AA:AA:AA"], indirect=True)
 async def test_sensors_with_stale_data(
-    hass: HomeAssistant, open_api: OpenAPI, aioambient, config_entry
+    hass: HomeAssistant,
+    open_api: OpenAPI,
+    aioambient: AsyncMock,
+    config_entry: ConfigEntry,
 ) -> None:
     """Test that the sensors are not populated if the data is stale."""
-    await setup_platform(False, hass, config_entry)
+    initial_datetime = datetime(year=2023, month=11, day=8)
+    with freeze_time(initial_datetime) as frozen_datetime:
+        await setup_platform(True, hass, config_entry)
 
-    sensor = hass.states.get("sensor.station_a_absolute_pressure")
-    assert sensor is None
+        sensor = hass.states.get("sensor.station_a_relative_pressure")
+        assert sensor is not None
+        assert sensor.last_updated_timestamp == 1699401600
+
+        frozen_datetime.tick(timedelta(minutes=10))
+        async_fire_time_changed(hass)
+        sensor = hass.states.get("sensor.station_a_relative_pressure")
+        assert sensor is not None
+        assert sensor.last_updated_timestamp == 1699401600
 
 
 @freeze_time("2023-11-08")
 @pytest.mark.parametrize("config_entry", ["BB:BB:BB:BB:BB:BB"], indirect=True)
 async def test_sensors_with_no_data(
-    hass: HomeAssistant, open_api: OpenAPI, aioambient, config_entry
+    hass: HomeAssistant,
+    open_api: OpenAPI,
+    aioambient: AsyncMock,
+    config_entry: ConfigEntry,
 ) -> None:
     """Test that the sensors are not populated if the last data is absent."""
     await setup_platform(False, hass, config_entry)
 
-    sensor = hass.states.get("sensor.station_b_absolute_pressure")
+    sensor = hass.states.get("sensor.station_b_relative_pressure")
     assert sensor is None
 
 
-@freeze_time("2023-11-08")
 @pytest.mark.parametrize("config_entry", ["CC:CC:CC:CC:CC:CC"], indirect=True)
 async def test_sensors_with_no_update_time(
-    hass: HomeAssistant, open_api: OpenAPI, aioambient, config_entry
+    hass: HomeAssistant,
+    open_api: OpenAPI,
+    aioambient: AsyncMock,
+    config_entry: ConfigEntry,
 ) -> None:
     """Test that the sensors are not populated if the update time is missing."""
-    await setup_platform(False, hass, config_entry)
+    initial_datetime = datetime(year=2023, month=11, day=8)
+    with freeze_time(initial_datetime) as frozen_datetime:
+        await setup_platform(True, hass, config_entry)
+        sensor = hass.states.get("sensor.station_c_relative_pressure")
+        assert sensor is not None
+        assert sensor.last_updated_timestamp == 1699401600
 
-    sensor = hass.states.get("sensor.station_c_absolute_pressure")
-    assert sensor is None
+        frozen_datetime.tick(timedelta(minutes=10))
+        async_fire_time_changed(hass)
+        sensor = hass.states.get("sensor.station_c_relative_pressure")
+        assert sensor is not None
+        assert sensor.last_updated_timestamp == 1699402200
 
 
 @pytest.mark.parametrize("config_entry", ["AA:AA:AA:AA:AA:AA"], indirect=True)
 async def test_sensors_disappearing(
     hass: HomeAssistant,
     open_api: OpenAPI,
-    aioambient,
-    config_entry,
-    caplog,
+    aioambient: AsyncMock,
+    config_entry: ConfigEntry,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test that we log errors properly."""
 
