@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
@@ -12,9 +11,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import ATTR_TOTAL_CONSUMPTION, DOMAIN
+from .coordinator import DlinkCoordinator
 from .entity import DLinkEntity
-
-SCAN_INTERVAL = timedelta(minutes=2)
 
 SWITCH_TYPE = SwitchEntityDescription(
     key="switch",
@@ -24,11 +22,9 @@ SWITCH_TYPE = SwitchEntityDescription(
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    """Set up the D-Link Power Plug switch."""
-    async_add_entities(
-        [SmartPlugSwitch(entry, hass.data[DOMAIN][entry.entry_id], SWITCH_TYPE)],
-        True,
-    )
+    """Set up the D-Link Power Plug sensors."""
+    coordinator: DlinkCoordinator = hass.data[DOMAIN][entry.entry_id]
+    async_add_entities([SmartPlugSwitch(coordinator, SWITCH_TYPE)])
 
 
 class SmartPlugSwitch(DLinkEntity, SwitchEntity):
@@ -36,18 +32,19 @@ class SmartPlugSwitch(DLinkEntity, SwitchEntity):
 
     _attr_name = None
 
+    # Deprecated, can be removed in 2024.11
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes of the device."""
         try:
             temperature = self.hass.config.units.temperature(
-                int(self.data.temperature), UnitOfTemperature.CELSIUS
+                int(self.coordinator.data.temperature), UnitOfTemperature.CELSIUS
             )
         except ValueError:
             temperature = None
 
         try:
-            total_consumption = float(self.data.total_consumption)
+            total_consumption = float(self.coordinator.data.total_consumption)
         except ValueError:
             total_consumption = None
 
@@ -59,21 +56,17 @@ class SmartPlugSwitch(DLinkEntity, SwitchEntity):
     @property
     def is_on(self) -> bool:
         """Return true if switch is on."""
-        return self.data.state == "ON"
+        return self.coordinator.data.state == "ON"
 
     def turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
-        self.data.smartplug.state = "ON"
+        self.coordinator.smartplug.state = "ON"
 
     def turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
-        self.data.smartplug.state = "OFF"
-
-    def update(self) -> None:
-        """Get the latest data from the smart plug and updates the states."""
-        self.data.update()
+        self.coordinator.smartplug.state = "OFF"
 
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self.data.available
+        return self.coordinator.available
