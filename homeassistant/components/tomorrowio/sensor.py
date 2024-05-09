@@ -52,8 +52,10 @@ from .const import (
     TMRW_ATTR_EPA_AQI,
     TMRW_ATTR_EPA_HEALTH_CONCERN,
     TMRW_ATTR_EPA_PRIMARY_POLLUTANT,
+    TMRW_ATTR_EVOPOTRANSPIRATION,
     TMRW_ATTR_FEELS_LIKE,
     TMRW_ATTR_FIRE_INDEX,
+    TMRW_ATTR_HUMIDITY,
     TMRW_ATTR_NITROGEN_DIOXIDE,
     TMRW_ATTR_OZONE,
     TMRW_ATTR_PARTICULATE_MATTER_10,
@@ -61,13 +63,21 @@ from .const import (
     TMRW_ATTR_POLLEN_GRASS,
     TMRW_ATTR_POLLEN_TREE,
     TMRW_ATTR_POLLEN_WEED,
+    TMRW_ATTR_PRECIPITATION_INTENSITY,
+    TMRW_ATTR_PRECIPITATION_PROBABILITY,
     TMRW_ATTR_PRECIPITATION_TYPE,
+    TMRW_ATTR_PRESSURE_SEA_LEVEL,
     TMRW_ATTR_PRESSURE_SURFACE_LEVEL,
     TMRW_ATTR_SOLAR_GHI,
     TMRW_ATTR_SULPHUR_DIOXIDE,
+    TMRW_ATTR_TEMPERATURE,
     TMRW_ATTR_UV_HEALTH_CONCERN,
     TMRW_ATTR_UV_INDEX,
+    TMRW_ATTR_VISIBILITY,
+    TMRW_ATTR_WET_BULB_GLOBE_TEMPERATURE,
+    TMRW_ATTR_WIND_DIRECTION,
     TMRW_ATTR_WIND_GUST,
+    TMRW_ATTR_WIND_SPEED,
 )
 
 
@@ -125,15 +135,18 @@ SENSOR_TYPES = (
     # Data comes in as hPa
     TomorrowioSensorEntityDescription(
         key="pressure_surface_level",
+        translation_key="pressure_surface_level",
+        name="Pressure (Surface Level)",
         attribute=TMRW_ATTR_PRESSURE_SURFACE_LEVEL,
         native_unit_of_measurement=UnitOfPressure.HPA,
-        device_class=SensorDeviceClass.PRESSURE,
+        device_class=SensorDeviceClass.ATMOSPHERIC_PRESSURE,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     # Data comes in as W/m^2, convert to BTUs/(hr * ft^2) for imperial
     # https://www.theunitconverter.com/watt-square-meter-to-btu-hour-square-foot-conversion/
     TomorrowioSensorEntityDescription(
         key="global_horizontal_irradiance",
+        translation_key="global_horizontal_irradiance",
         attribute=TMRW_ATTR_SOLAR_GHI,
         unit_imperial=UnitOfIrradiance.BTUS_PER_HOUR_SQUARE_FOOT,
         unit_metric=UnitOfIrradiance.WATTS_PER_SQUARE_METER,
@@ -176,6 +189,7 @@ SENSOR_TYPES = (
         translation_key="cloud_cover",
         attribute=TMRW_ATTR_CLOUD_COVER,
         native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
     ),
     # Data comes in as m/s, convert to mi/h for imperial
     TomorrowioSensorEntityDescription(
@@ -184,7 +198,7 @@ SENSOR_TYPES = (
         attribute=TMRW_ATTR_WIND_GUST,
         unit_imperial=UnitOfSpeed.MILES_PER_HOUR,
         unit_metric=UnitOfSpeed.METERS_PER_SECOND,
-        device_class=SensorDeviceClass.SPEED,
+        device_class=SensorDeviceClass.WIND_SPEED,
         state_class=SensorStateClass.MEASUREMENT,
         imperial_conversion=lambda val: SpeedConverter.convert(
             val, UnitOfSpeed.METERS_PER_SECOND, UnitOfSpeed.MILES_PER_HOUR
@@ -200,6 +214,7 @@ SENSOR_TYPES = (
     # Molecular weight of Ozone is 48
     TomorrowioSensorEntityDescription(
         key="ozone",
+        translation_key="ozone",
         attribute=TMRW_ATTR_OZONE,
         native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
         multiplication_factor=convert_ppb_to_ugm3(48),
@@ -207,14 +222,16 @@ SENSOR_TYPES = (
         state_class=SensorStateClass.MEASUREMENT,
     ),
     TomorrowioSensorEntityDescription(
-        key="particulate_matter_2_5_mm",
+        key="particulate_matter_2_5_µm",
+        translation_key="particulate_matter_2_5_µm",
         attribute=TMRW_ATTR_PARTICULATE_MATTER_25,
         native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
         device_class=SensorDeviceClass.PM25,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     TomorrowioSensorEntityDescription(
-        key="particulate_matter_10_mm",
+        key="particulate_matter_10_µm",
+        translation_key="particulate_matter_10_µm",
         attribute=TMRW_ATTR_PARTICULATE_MATTER_10,
         native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
         device_class=SensorDeviceClass.PM10,
@@ -224,6 +241,7 @@ SENSOR_TYPES = (
     # Molecular weight of Nitrogen Dioxide is 46.01
     TomorrowioSensorEntityDescription(
         key="nitrogen_dioxide",
+        translation_key="nitrogen_dioxide",
         attribute=TMRW_ATTR_NITROGEN_DIOXIDE,
         native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
         multiplication_factor=convert_ppb_to_ugm3(46.01),
@@ -233,6 +251,7 @@ SENSOR_TYPES = (
     # Data comes in as ppb, convert to ppm
     TomorrowioSensorEntityDescription(
         key="carbon_monoxide",
+        translation_key="carbon_monoxide",
         attribute=TMRW_ATTR_CARBON_MONOXIDE,
         native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION,
         multiplication_factor=1 / 1000,
@@ -243,6 +262,7 @@ SENSOR_TYPES = (
     # Molecular weight of Sulphur Dioxide is 64.07
     TomorrowioSensorEntityDescription(
         key="sulphur_dioxide",
+        translation_key="sulphur_dioxide",
         attribute=TMRW_ATTR_SULPHUR_DIOXIDE,
         native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
         multiplication_factor=convert_ppb_to_ugm3(64.07),
@@ -320,6 +340,101 @@ SENSOR_TYPES = (
         translation_key="uv_radiation_health_concern",
         attribute=TMRW_ATTR_UV_HEALTH_CONCERN,
         value_map=UVDescription,
+    ),
+    TomorrowioSensorEntityDescription(
+        key="temperature",
+        attribute=TMRW_ATTR_TEMPERATURE,
+        name="Temperature",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    TomorrowioSensorEntityDescription(
+        key="evapotranspiration",
+        translation_key="evapotranspiration",
+        attribute=TMRW_ATTR_EVOPOTRANSPIRATION,
+        name="Evapotranspiration",
+        native_unit_of_measurement="mm",
+        device_class=SensorDeviceClass.DISTANCE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:waves-arrow-up",
+    ),
+    TomorrowioSensorEntityDescription(
+        key="wet_bulb_globe_temperature",
+        translation_key="wet_bulb_globe_temperature",
+        attribute=TMRW_ATTR_WET_BULB_GLOBE_TEMPERATURE,
+        name="Wet Bulb Globe Temperature",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    TomorrowioSensorEntityDescription(
+        key="wind_speed",
+        translation_key="wind_speed",
+        attribute=TMRW_ATTR_WIND_SPEED,
+        name="Wind Speed",
+        unit_imperial=UnitOfSpeed.MILES_PER_HOUR,
+        unit_metric=UnitOfSpeed.METERS_PER_SECOND,
+        device_class=SensorDeviceClass.WIND_SPEED,
+        state_class=SensorStateClass.MEASUREMENT,
+        imperial_conversion=lambda val: SpeedConverter.convert(
+            val, UnitOfSpeed.METERS_PER_SECOND, UnitOfSpeed.MILES_PER_HOUR
+        ),
+    ),
+    TomorrowioSensorEntityDescription(
+        key="wind_direction",
+        translation_key="wind_direction",
+        attribute=TMRW_ATTR_WIND_DIRECTION,
+        name="Wind Direction",
+        native_unit_of_measurement="°",
+        icon="mdi:windsock",
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    TomorrowioSensorEntityDescription(
+        key="precipitation_intensity",
+        translation_key="precipitation_intensity",
+        attribute=TMRW_ATTR_PRECIPITATION_INTENSITY,
+        name="Precipitation Intensity",
+        native_unit_of_measurement="mm/h",
+        device_class=SensorDeviceClass.PRECIPITATION_INTENSITY,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    TomorrowioSensorEntityDescription(
+        key="precipitation_probability",
+        translation_key="precipitation_probability",
+        attribute=TMRW_ATTR_PRECIPITATION_PROBABILITY,
+        name="Precipitation Probability",
+        icon="mdi:water-percent",
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    TomorrowioSensorEntityDescription(
+        key="visibility",
+        translation_key="visibility",
+        attribute=TMRW_ATTR_VISIBILITY,
+        name="Visibility",
+        native_unit_of_measurement="km",
+        device_class=SensorDeviceClass.DISTANCE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    TomorrowioSensorEntityDescription(
+        key="humidity",
+        translation_key="humidity",
+        attribute=TMRW_ATTR_HUMIDITY,
+        name="Humidity",
+        native_unit_of_measurement=PERCENTAGE,
+        device_class=SensorDeviceClass.HUMIDITY,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    # Data comes in as hPa
+    TomorrowioSensorEntityDescription(
+        key="pressure_sea_level",
+        translation_key="pressure_sea_level",
+        attribute=TMRW_ATTR_PRESSURE_SEA_LEVEL,
+        name="Pressure (Sea Level)",
+        native_unit_of_measurement=UnitOfPressure.HPA,
+        device_class=SensorDeviceClass.ATMOSPHERIC_PRESSURE,
+        state_class=SensorStateClass.MEASUREMENT,
     ),
 )
 
