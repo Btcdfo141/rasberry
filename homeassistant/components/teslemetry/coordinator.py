@@ -50,7 +50,6 @@ def flatten(data: dict[str, Any], parent: str | None = None) -> dict[str, Any]:
 class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching data from the Teslemetry API."""
 
-    updated_once = False
     pre2021: bool
     last_active: datetime
 
@@ -102,14 +101,11 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     # Let vehicle go to sleep now
                     self.update_interval = VEHICLE_WAIT
 
-        self.updated_once = True
         return flatten(data)
 
 
 class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching energy site live status from the Teslemetry API."""
-
-    updated_once = False
 
     def __init__(self, hass: HomeAssistant, api: EnergySpecific) -> None:
         """Initialize Teslemetry Energy Site Live coordinator."""
@@ -136,14 +132,11 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
             wc["din"]: wc for wc in (data.get("wall_connectors") or [])
         }
 
-        self.updated_once = True
         return data
 
 
 class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching energy site info from the Teslemetry API."""
-
-    updated_once = False
 
     def __init__(self, hass: HomeAssistant, api: EnergySpecific, product: dict) -> None:
         """Initialize Teslemetry Energy Info coordinator."""
@@ -166,5 +159,4 @@ class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]])
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
 
-        self.updated_once = True
         return flatten(data)
