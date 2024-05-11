@@ -65,7 +65,6 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self.api = api
         self.data = flatten(product)
-        self.pre2021 = product["vin"][9] <= "L"
         self.last_active = datetime.now()
 
     async def _async_update_data(self) -> dict[str, Any]:
@@ -83,7 +82,7 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
 
-        if self.pre2021 and data["state"] == TeslemetryState.ONLINE:
+        if self.api.pre2021 and data["state"] == TeslemetryState.ONLINE:
             # Handle pre-2021 vehicles which cannot sleep by themselves
             if (
                 data["charge_state"].get("charging_state") == "Charging"
