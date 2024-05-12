@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from functools import partial
-from typing import cast
 
 from aiounifi.interfaces.api_handlers import ItemEvent
 from aiounifi.interfaces.clients import Clients
@@ -185,12 +184,15 @@ def async_client_wan_monitor_supported_fn(
     """Determine if a client supports WAN monitoring."""
     device = hub.api.devices[obj_id]
 
-    uptime_stats = getattr(device.raw, "uptime_stats", {})
-    wan = uptime_stats.get("WAN")
+    uptime_stats = device.uptime_stats
+    if uptime_stats is None:
+        return False
+
+    wan = uptime_stats["WAN"]
     if wan is None:
         return False
 
-    monitors = wan.get("monitors")
+    monitors = wan["monitors"]
     if monitors is None:
         return False
 
@@ -200,14 +202,18 @@ def async_client_wan_monitor_supported_fn(
 @callback
 def async_client_wan_monitor_latency(
     monitor_target: str, hub: UnifiHub, device: Device
-) -> float | None:
+) -> int | None:
     """Retrieve the monitor target from WAN monitors."""
-    uptime_stats = getattr(device.raw, "uptime_stats", {})
-    wan = uptime_stats.get("WAN")
+
+    uptime_stats = device.uptime_stats
+    if uptime_stats is None:
+        return None
+
+    wan = uptime_stats["WAN"]
     if wan is None:
         return None
 
-    monitors = wan.get("monitors")
+    monitors = wan["monitors"]
     if monitors is None:
         return None
 
@@ -215,7 +221,7 @@ def async_client_wan_monitor_latency(
     if item is None:
         return None
 
-    return cast(float, item["latency_average"])
+    return item["latency_average"]
 
 
 @dataclass(frozen=True, kw_only=True)
