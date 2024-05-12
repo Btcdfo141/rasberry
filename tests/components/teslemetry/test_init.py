@@ -13,7 +13,6 @@ from homeassistant.components.teslemetry.coordinator import (
     VEHICLE_INTERVAL,
     VEHICLE_WAIT,
 )
-from homeassistant.components.teslemetry.coordinator import VEHICLE_INTERVAL
 from homeassistant.components.teslemetry.models import TeslemetryData
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import Platform
