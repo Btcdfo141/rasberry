@@ -6,7 +6,14 @@ from abc import ABC, abstractmethod
 from datetime import timedelta
 from typing import Generic, TypeVar, cast
 
-from aiopyarr import LidarrAlbum, LidarrQueue, LidarrRootFolder, exceptions
+from aiopyarr import (
+    Health,
+    LidarrAlbum,
+    LidarrQueue,
+    LidarrRootFolder,
+    SystemStatus,
+    exceptions,
+)
 from aiopyarr.lidarr_client import LidarrClient
 from aiopyarr.models.host_configuration import PyArrHostConfiguration
 
@@ -17,7 +24,15 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .const import DEFAULT_MAX_RECORDS, DOMAIN, LOGGER
 
-T = TypeVar("T", bound=list[LidarrRootFolder] | LidarrQueue | str | LidarrAlbum)
+T = TypeVar(
+    "T",
+    bound=SystemStatus
+    | list[LidarrRootFolder]
+    | LidarrQueue
+    | list[Health]
+    | str
+    | LidarrAlbum,
+)
 
 
 class LidarrDataUpdateCoordinator(DataUpdateCoordinator[T], Generic[T], ABC):
@@ -70,6 +85,14 @@ class DiskSpaceDataUpdateCoordinator(
         return cast(
             list[LidarrRootFolder], await self.api_client.async_get_root_folders()
         )
+
+
+class HealthDataUpdateCoordinator(LidarrDataUpdateCoordinator[list[Health]]):
+    """Health update coordinator."""
+
+    async def _fetch_data(self) -> list[Health]:
+        """Fetch the health data."""
+        return await self.api_client.async_get_failed_health_checks()
 
 
 class QueueDataUpdateCoordinator(LidarrDataUpdateCoordinator[LidarrQueue]):
