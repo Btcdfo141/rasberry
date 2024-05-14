@@ -31,7 +31,13 @@ async def async_setup_entry(
     data: TPLinkData = hass.data[DOMAIN][config_entry.entry_id]
     parent_coordinator = data.parent_coordinator
     device = cast(SmartPlug, parent_coordinator.device)
-    if not device.is_plug and not device.is_strip and not device.is_dimmer:
+    has_led = "led" in device.features
+    if (
+        not has_led
+        and not device.is_plug
+        and not device.is_strip
+        and not device.is_dimmer
+    ):
         return
     entities: list = []
     if device.is_strip:
@@ -45,7 +51,7 @@ async def async_setup_entry(
         entities.append(SmartPlugSwitch(device, parent_coordinator))
 
     # this will be removed on the led is implemented
-    if hasattr(device, "led"):
+    if has_led:
         entities.append(SmartPlugLedSwitch(device, parent_coordinator))
 
     async_add_entities(entities)
@@ -65,22 +71,23 @@ class SmartPlugLedSwitch(CoordinatedTPLinkEntity, SwitchEntity):
         """Initialize the LED switch."""
         super().__init__(device, coordinator)
         self._attr_unique_id = f"{device.mac}_led"
+        self._led_feature = device.features["led"]
         self._async_update_attrs()
 
     @async_refresh_after
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the LED switch on."""
-        await self.device.set_led(True)
+        await self._led_feature.set_value(True)
 
     @async_refresh_after
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the LED switch off."""
-        await self.device.set_led(False)
+        await self._led_feature.set_value(False)
 
     @callback
     def _async_update_attrs(self) -> None:
         """Update the entity's attributes."""
-        self._attr_is_on = self.device.led
+        self._attr_is_on = self._led_feature.value
 
     @callback
     def _handle_coordinator_update(self) -> None:
