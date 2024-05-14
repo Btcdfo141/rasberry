@@ -139,6 +139,7 @@ async def test_entry_diagnostics(
             "pref_disable_new_entities": False,
             "pref_disable_polling": False,
             "source": "user",
+            "subentries": [],
             "title": "Mock Title",
             "unique_id": "1",
             "version": 1,

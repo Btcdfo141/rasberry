@@ -58,5 +58,6 @@ async def test_diagnostics(
             "source": "user",
             "unique_id": REDACTED,
             "disabled_by": None,
+            "subentries": [],
         },
     }

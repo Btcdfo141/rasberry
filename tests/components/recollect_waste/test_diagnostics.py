@@ -30,6 +30,7 @@ async def test_entry_diagnostics(
             "source": "user",
             "unique_id": REDACTED,
             "disabled_by": None,
+            "subentries": [],
         },
         "data": [
             {

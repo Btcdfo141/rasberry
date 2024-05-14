@@ -59,5 +59,6 @@ async def test_diagnostics(
             "source": "user",
             "unique_id": "switcher_kis",
             "disabled_by": None,
+            "subentries": [],
         },
     }

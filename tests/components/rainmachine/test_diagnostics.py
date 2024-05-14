@@ -40,6 +40,7 @@ async def test_entry_diagnostics(
             "source": "user",
             "unique_id": REDACTED,
             "disabled_by": None,
+            "subentries": [],
         },
         "data": {
             "coordinator": {
@@ -671,6 +672,7 @@ async def test_entry_diagnostics_failed_controller_diagnostics(
             "source": "user",
             "unique_id": REDACTED,
             "disabled_by": None,
+            "subentries": [],
         },
         "data": {
             "coordinator": {
