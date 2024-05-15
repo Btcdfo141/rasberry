@@ -76,6 +76,11 @@ class SwissPublicTransportDataUpdateCoordinator(
         return None
 
     async def _async_update_data(self) -> list[DataConnection]:
+        return await self.fetch_connections(limit=SENSOR_CONNECTIONS_COUNT)
+
+    async def fetch_connections(self, limit: int) -> list[DataConnection]:
+        """Fetch connections using the opendata api."""
+        self._opendata.limit = limit
         try:
             await self._opendata.async_get_data()
         except OpendataTransportError as e:
@@ -99,6 +104,6 @@ class SwissPublicTransportDataUpdateCoordinator(
                 remaining_time=str(self.remaining_time(connections[i]["departure"])),
                 delay=connections[i]["delay"],
             )
-            for i in range(SENSOR_CONNECTIONS_COUNT)
+            for i in range(limit)
             if len(connections) > i and connections[i] is not None
         ]
