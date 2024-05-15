@@ -367,10 +367,10 @@ async def test_reconfigure_successful(hass: HomeAssistant) -> None:
         (SnmpError("error"), "snmp_error"),
     ],
 )
-async def test_reconfigure_not_successful(
+async def test_reconfigurewith_exception(
     hass: HomeAssistant, exc: Exception, base_error: str
 ) -> None:
-    """Test starting a reconfigure flow but no connection found."""
+    """Test starting a reconfigure flow but exception is reised."""
     entry = MockConfigEntry(domain=DOMAIN, unique_id="0123456789", data=CONFIG)
     entry.add_to_hass(hass)
 
@@ -446,8 +446,8 @@ async def test_reconfigure_invalid_hostname(hass: HomeAssistant) -> None:
     assert result["errors"] == {CONF_HOST: "wrong_host"}
 
 
-async def test_reconfigure_not_the_same_device(hass: HomeAssistant) -> None:
-    """Test starting the reconfiguration process, but with a different printer."""
+async def test_reconfigure_another_device(hass: HomeAssistant) -> None:
+    """Test starting the reconfiguration process, but with another printer."""
     entry = MockConfigEntry(domain=DOMAIN, unique_id="xyz012", data=CONFIG)
     entry.add_to_hass(hass)
 
