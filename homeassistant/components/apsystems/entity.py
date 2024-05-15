@@ -22,8 +22,9 @@ class ApsystemsEntity(CoordinatorEntity[ApSystemsDataCoordinator]):
     ) -> None:
         """Initialize the APsystems entity."""
         super().__init__(data.coordinator)
-        self._entry = entry
         assert entry.unique_id
+        self._entry = entry
+        self._api = data.api
         self._attr_unique_id = entry.unique_id
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self._attr_unique_id)},
