@@ -18,7 +18,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from .const import DOMAIN, MODELS
+from .const import DOMAIN, LOGGER, MODELS
 from .coordinator import (
     TeslemetryEnergySiteInfoCoordinator,
     TeslemetryEnergySiteLiveCoordinator,
@@ -45,7 +45,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         access_token=access_token,
     )
     try:
-        scopes = (await teslemetry.metadata())["scopes"]
+        metadata = await teslemetry.metadata()
+        scopes = metadata["scopes"]
+        uid = metadata["uid"]
         products = (await teslemetry.products())["response"]
     except InvalidToken as e:
         raise ConfigEntryAuthFailed from e
@@ -53,6 +55,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         raise ConfigEntryAuthFailed from e
     except TeslaFleetError as e:
         raise ConfigEntryNotReady from e
+
+    # Update unique_id if not set
+    if entry.unique_id is None:
+        LOGGER.debug("Setting unique_id to %s", uid)
+        hass.config_entries.async_update_entry(entry, unique_id=uid)
 
     # Create array of classes
     vehicles: list[TeslemetryVehicleData] = []

@@ -40,7 +40,7 @@ class TeslemetryConfigFlow(ConfigFlow, domain=DOMAIN):
             access_token=user_input[CONF_ACCESS_TOKEN],
         )
         try:
-            await teslemetry.test()
+            metadata = await teslemetry.metadata()
         except InvalidToken:
             return {CONF_ACCESS_TOKEN: "invalid_access_token"}
         except SubscriptionRequired:
@@ -50,6 +50,8 @@ class TeslemetryConfigFlow(ConfigFlow, domain=DOMAIN):
         except TeslaFleetError as e:
             LOGGER.error(e)
             return {"base": "unknown"}
+
+        await self.async_set_unique_id(metadata["uid"])
         return {}
 
     async def async_step_user(
