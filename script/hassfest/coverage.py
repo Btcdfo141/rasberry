@@ -19,6 +19,7 @@ DONT_IGNORE = (
     "recorder.py",
     "scene.py",
 )
+FORCE_COVERAGE = ("gold", "platinum")
 
 CORE_PREFIX = """# Sorted by hassfest.
 #
@@ -105,6 +106,14 @@ def validate(integrations: dict[str, Integration], config: Config) -> None:
 
             integration = integrations[integration_path.name]
 
+            if integration.quality_scale in FORCE_COVERAGE:
+                integration.add_error(
+                    "coverage",
+                    f"has quality scale {integration.quality_scale} and "
+                    "should not be present in .coveragerc file",
+                )
+                continue
+
             if (
                 path.parts[-1] == "*"
                 and Path(f"tests/components/{integration.domain}/__init__.py").exists()
@@ -113,6 +122,7 @@ def validate(integrations: dict[str, Integration], config: Config) -> None:
                     "coverage",
                     "has tests and should not use wildcard in .coveragerc file",
                 )
+                continue
 
             for check in DONT_IGNORE:
                 if path.parts[-1] not in {"*", check}:
