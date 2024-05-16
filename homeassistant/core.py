@@ -104,6 +104,7 @@ from .util.async_ import (
 )
 from .util.event_type import EventType
 from .util.executor import InterruptibleThreadPoolExecutor
+from .util.hass_dict import HassDict
 from .util.json import JsonObjectType
 from .util.read_only_dict import ReadOnlyDict
 from .util.timeout import TimeoutManager
@@ -406,7 +407,7 @@ class HomeAssistant:
         from . import loader
 
         # This is a dictionary that any component can store any data on.
-        self.data: dict[str, Any] = {}
+        self.data = HassDict()
         self.loop = asyncio.get_running_loop()
         self._tasks: set[asyncio.Future[Any]] = set()
         self._background_tasks: set[asyncio.Future[Any]] = set()
@@ -438,7 +439,11 @@ class HomeAssistant:
 
             # frame is a circular import, so we import it here
             frame.report(
-                f"calls {what} from a thread",
+                f"calls {what} from a thread other than the event loop, "
+                "which may cause Home Assistant to crash or data to corrupt. "
+                "For more information, see "
+                "https://developers.home-assistant.io/docs/asyncio_thread_safety/"
+                f"#{what.replace('.', '')}",
                 error_if_core=True,
                 error_if_integration=True,
             )
@@ -801,7 +806,7 @@ class HomeAssistant:
         # check with a check for the `hass.config.debug` flag being set as
         # long term we don't want to be checking this in production
         # environments since it is a performance hit.
-        self.verify_event_loop_thread("async_create_task")
+        self.verify_event_loop_thread("hass.async_create_task")
         return self.async_create_task_internal(target, name, eager_start)
 
     @callback
@@ -1202,7 +1207,7 @@ class HomeAssistant:
                 _LOGGER.exception(
                     "Task %s could not be canceled during final shutdown stage", task
                 )
-            except Exception:  # pylint: disable=broad-except
+            except Exception:
                 _LOGGER.exception("Task %s error during final shutdown stage", task)
 
         # Prevent run_callback_threadsafe from scheduling any additional
@@ -1492,7 +1497,7 @@ class EventBus:
         This method must be run in the event loop.
         """
         _verify_event_type_length_or_raise(event_type)
-        self._hass.verify_event_loop_thread("async_fire")
+        self._hass.verify_event_loop_thread("hass.bus.async_fire")
         return self.async_fire_internal(
             event_type, event_data, origin, context, time_fired
         )
@@ -1541,7 +1546,7 @@ class EventBus:
                 try:
                     if event_data is None or not event_filter(event_data):
                         continue
-                except Exception:  # pylint: disable=broad-except
+                except Exception:
                     _LOGGER.exception("Error in event filter")
                     continue
 
@@ -1556,7 +1561,7 @@ class EventBus:
 
             try:
                 self._hass.async_run_hass_job(job, event)
-            except Exception:  # pylint: disable=broad-except
+            except Exception:
                 _LOGGER.exception("Error running job: %s", job)
 
     def listen(
@@ -2505,7 +2510,7 @@ class ServiceRegistry:
 
         This method must be run in the event loop.
         """
-        self._hass.verify_event_loop_thread("async_register")
+        self._hass.verify_event_loop_thread("hass.services.async_register")
         self._async_register(
             domain, service, service_func, schema, supports_response, job_type
         )
@@ -2564,7 +2569,7 @@ class ServiceRegistry:
 
         This method must be run in the event loop.
         """
-        self._hass.verify_event_loop_thread("async_remove")
+        self._hass.verify_event_loop_thread("hass.services.async_remove")
         self._async_remove(domain, service)
 
     @callback
@@ -2750,7 +2755,7 @@ class ServiceRegistry:
             )
         except asyncio.CancelledError:
             _LOGGER.debug("Service was cancelled: %s", service_call)
-        except Exception:  # pylint: disable=broad-except
+        except Exception:
             _LOGGER.exception("Error executing service: %s", service_call)
 
     async def _execute_service(
@@ -2761,14 +2766,16 @@ class ServiceRegistry:
         target = job.target
         if job.job_type is HassJobType.Coroutinefunction:
             if TYPE_CHECKING:
-                target = cast(Callable[..., Coroutine[Any, Any, _R]], target)
+                target = cast(
+                    Callable[..., Coroutine[Any, Any, ServiceResponse]], target
+                )
             return await target(service_call)
         if job.job_type is HassJobType.Callback:
             if TYPE_CHECKING:
-                target = cast(Callable[..., _R], target)
+                target = cast(Callable[..., ServiceResponse], target)
             return target(service_call)
         if TYPE_CHECKING:
-            target = cast(Callable[..., _R], target)
+            target = cast(Callable[..., ServiceResponse], target)
         return await self._hass.async_add_executor_job(target, service_call)
 
 
@@ -2898,7 +2905,7 @@ class Config:
 
     def is_allowed_external_url(self, url: str) -> bool:
         """Check if an external URL is allowed."""
-        parsed_url = f"{str(yarl.URL(url))}/"
+        parsed_url = f"{yarl.URL(url)!s}/"
 
         return any(
             allowed
