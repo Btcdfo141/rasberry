@@ -10,27 +10,27 @@ from mozart_api.models import Source, SourceArray, SourceTypeEnum
 from homeassistant.components.media_player import MediaPlayerState, MediaType
 
 
-class BangOlufsenSource(StrEnum):
-    """Enum used for associating device source ids with friendly names. May not include all sources."""
+class BangOlufsenSource:
+    """Class used for associating device source ids with friendly names. May not include all sources."""
 
-    URI_STREAMER = "Audio Streamer"
-    BLUETOOTH = "Bluetooth"
-    AIR_PLAY = "AirPlay"
-    CHROMECAST = "Chromecast built-in"
-    SPOTIFY = "Spotify Connect"
-    GENERATOR = "Tone Generator"
-    LINE_IN = "Line-In"
-    SPDIF = "Optical"
-    NET_RADIO = "B&O Radio"
-    LOCAL = "Local"
-    DLNA = "DLNA"
-    QPLAY = "QPlay"
-    WPL = "Wireless Powerlink"
-    PL = "Powerlink"
-    TV = "TV"
-    DEEZER = "Deezer"
-    BEOLINK = "Networklink"
-    TIDAL_CONNECT = "Tidal Connect"
+    uri_streamer = Source(name="Audio Streamer", id="uriStreamer")
+    bluetooth = Source(name="Bluetooth", id="bluetooth")
+    air_play = Source(name="AirPlay", id="airPlay")
+    chromecast = Source(name="Chromecast built-in", id="chromeCast")
+    spotify = Source(name="Spotify Connect", id="spotify")
+    generator = Source(name="Tone Generator", id="generator")
+    line_in = Source(name="Line-In", id="lineIn")
+    spdif = Source(name="Optical", id="spdif")
+    net_radio = Source(name="B&O Radio", id="netRadio")
+    local = Source(name="Local", id="local")
+    dlna = Source(name="DLNA", id="dlna")
+    qplay = Source(name="QPlay", id="qplay")
+    wpl = Source(name="Wireless Powerlink", id="wpl")
+    pl = Source(name="Powerlink", id="pl")
+    tv = Source(name="TV", id="tv")
+    deezer = Source(name="Deezer", id="deezer")
+    beolink = Source(name="Networklink", id="beolink")
+    tidal_connect = Source(name="Tidal Connect", id="tidalConnect")
 
 
 BANG_OLUFSEN_STATES: dict[str, MediaPlayerState] = {
