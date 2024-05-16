@@ -571,6 +571,7 @@ FLOWS = {
         "trafikverket_weatherstation",
         "transmission",
         "tuya",
+        "tvoverlay",
         "twentemilieu",
         "twilio",
         "twinkly",
