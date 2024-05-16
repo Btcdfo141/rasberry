@@ -111,6 +111,9 @@ omit =
     homeassistant/components/avea/light.py
     homeassistant/components/avion/light.py
     homeassistant/components/awair/coordinator.py
+    homeassistant/components/awattar/__init__.py
+    homeassistant/components/awattar/coordinator.py
+    homeassistant/components/awattar/sensor.py
     homeassistant/components/azure_service_bus/*
     homeassistant/components/baf/__init__.py
     homeassistant/components/baf/climate.py
