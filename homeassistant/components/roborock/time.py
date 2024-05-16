@@ -21,7 +21,7 @@ from homeassistant.util import slugify
 
 from .const import DOMAIN
 from .coordinator import RoborockDataUpdateCoordinator
-from .device import RoborockEntity
+from .device import RoborockEntityV1
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -127,6 +127,7 @@ async def async_setup_entry(
         (coordinator, description)
         for coordinator in coordinators.values()
         for description in TIME_DESCRIPTIONS
+        if isinstance(coordinator, RoborockDataUpdateCoordinator)
     ]
     # We need to check if this function is supported by the device.
     results = await asyncio.gather(
@@ -153,7 +154,7 @@ async def async_setup_entry(
     async_add_entities(valid_entities)
 
 
-class RoborockTimeEntity(RoborockEntity, TimeEntity):
+class RoborockTimeEntity(RoborockEntityV1, TimeEntity):
     """A class to let you set options on a Roborock vacuum where the potential options are fixed."""
 
     entity_description: RoborockTimeDescription

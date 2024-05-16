@@ -25,7 +25,7 @@ from homeassistant.util import slugify
 
 from .const import DOMAIN, GET_MAPS_SERVICE_NAME
 from .coordinator import RoborockDataUpdateCoordinator
-from .device import RoborockCoordinatedEntity
+from .device import RoborockCoordinatedEntityV1
 
 STATE_CODE_TO_STATE = {
     RoborockStateCode.starting: STATE_IDLE,  # "Starting"
@@ -66,6 +66,7 @@ async def async_setup_entry(
     async_add_entities(
         RoborockVacuum(slugify(device_id), coordinator)
         for device_id, coordinator in coordinators.items()
+        if isinstance(coordinator, RoborockDataUpdateCoordinator)
     )
 
     platform = entity_platform.async_get_current_platform()
@@ -78,7 +79,7 @@ async def async_setup_entry(
     )
 
 
-class RoborockVacuum(RoborockCoordinatedEntity, StateVacuumEntity):
+class RoborockVacuum(RoborockCoordinatedEntityV1, StateVacuumEntity):
     """General Representation of a Roborock vacuum."""
 
     _attr_icon = "mdi:robot-vacuum"
@@ -104,7 +105,7 @@ class RoborockVacuum(RoborockCoordinatedEntity, StateVacuumEntity):
     ) -> None:
         """Initialize a vacuum."""
         StateVacuumEntity.__init__(self)
-        RoborockCoordinatedEntity.__init__(
+        RoborockCoordinatedEntityV1.__init__(
             self,
             unique_id,
             coordinator,
