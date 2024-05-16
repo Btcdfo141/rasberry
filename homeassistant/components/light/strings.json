@@ -314,6 +314,11 @@
           "name": "Effect",
           "description": "Light effect."
         }
+      },
+      "sections": {
+        "advanced_fields": {
+          "name": "Advanced options"
+        }
       }
     },
     "turn_off": {
@@ -327,6 +332,11 @@
         "flash": {
           "name": "[%key:component::light::services::turn_on::fields::flash::name%]",
           "description": "[%key:component::light::services::turn_on::fields::flash::description%]"
+        }
+      },
+      "sections": {
+        "advanced_fields": {
+          "name": "Advanced options"
         }
       }
     },
@@ -385,6 +395,11 @@
         "effect": {
           "name": "[%key:component::light::services::turn_on::fields::effect::name%]",
           "description": "[%key:component::light::services::turn_on::fields::effect::description%]"
+        }
+      },
+      "sections": {
+        "advanced_fields": {
+          "name": "Advanced options"
         }
       }
     }
