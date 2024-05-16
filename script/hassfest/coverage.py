@@ -19,6 +19,7 @@ DONT_IGNORE = (
     "recorder.py",
     "scene.py",
 )
+FORCE_COVERAGE = ("gold", "platinum")
 
 CORE_PREFIX = """# Sorted by hassfest.
 #
@@ -104,6 +105,13 @@ def validate(integrations: dict[str, Integration], config: Config) -> None:
             integration_path = path.parent
 
             integration = integrations[integration_path.name]
+
+            if integration.quality_scale in FORCE_COVERAGE:
+                integration.add_error(
+                    "coverage",
+                    f"has quality scale {integration.quality_scale} and "
+                    "should not be present in .coveragerc file",
+                )
 
             if (
                 path.parts[-1] == "*"
