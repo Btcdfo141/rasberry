@@ -1,4 +1,40 @@
 {
+  "config": {
+    "step": {
+      "user": {
+        "title": "Genius Hub Configuration",
+        "menu_options": {
+          "v3_api": "Local (recommended): IP address and user credentials",
+          "v1_api": "Cloud: API token and MAC address"
+        }
+      },
+      "v3_api": {
+        "title": "Genius Hub Local Configuration",
+        "data": {
+          "host": "[%key:common::config_flow::data::ip%]",
+          "mac": "MAC address",
+          "password": "[%key:common::config_flow::data::password%]",
+          "username": "[%key:common::config_flow::data::username%]"
+        }
+      },
+      "v1_api": {
+        "title": "Genius Hub Cloud Configuration",
+        "data": {
+          "token": "[%key:common::config_flow::data::access_token%]",
+          "mac": "MAC address"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+    },
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "invalid_auth": "[%key:common::config_flow::error::invalid_host%]",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    }
+  },
+
   "services": {
     "set_zone_mode": {
       "name": "Set zone mode",

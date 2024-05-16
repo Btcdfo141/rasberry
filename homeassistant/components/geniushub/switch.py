@@ -8,10 +8,10 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv, entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
 from . import ATTR_DURATION, DOMAIN, GeniusZone
 
@@ -27,15 +27,16 @@ SET_SWITCH_OVERRIDE_SCHEMA = {
 }
 
 
-async def async_setup_platform(
+async def async_setup_entry(
     hass: HomeAssistant,
-    config: ConfigType,
+    entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
-    discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
     """Set up the Genius Hub switch entities."""
-    if discovery_info is None:
-        return
+    config = hass.data[DOMAIN][entry.entry_id]
+    # Update our config to include new repos and remove those that have been removed.
+    if entry.options:
+        config.update(entry.options)
 
     broker = hass.data[DOMAIN]["broker"]
 
@@ -44,7 +45,8 @@ async def async_setup_platform(
             GeniusSwitch(broker, z)
             for z in broker.client.zone_objs
             if z.data.get("type") == GH_ON_OFF_ZONE
-        ]
+        ],
+        update_before_add=True,
     )
 
     # Register custom services
