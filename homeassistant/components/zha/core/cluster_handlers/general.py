@@ -231,6 +231,27 @@ class BinaryOutputClusterHandler(ClusterHandler):
         ),
     )
 
+    ZCL_INIT_ATTRS = {
+        BinaryOutput.AttributeDefs.active_text.name: True,
+        BinaryOutput.AttributeDefs.description.name: True,
+        BinaryOutput.AttributeDefs.inactive_text.name: True,
+    }
+
+    @property
+    def active_text(self) -> str | None:
+        """Return cached value of active_text."""
+        return self.cluster.get(BinaryOutput.AttributeDefs.active_text.name)
+
+    @property
+    def description(self) -> str | None:
+        """Return cached value of description."""
+        return self.cluster.get(BinaryOutput.AttributeDefs.description.name)
+
+    @property
+    def inactive_text(self) -> str | None:
+        """Return cached value of inactive_text."""
+        return self.cluster.get(BinaryOutput.AttributeDefs.inactive_text.name)
+
 
 @registries.ZIGBEE_CLUSTER_HANDLER_REGISTRY.register(BinaryValue.cluster_id)
 class BinaryValueClusterHandler(ClusterHandler):
