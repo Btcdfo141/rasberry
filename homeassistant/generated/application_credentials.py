@@ -22,6 +22,7 @@ APPLICATION_CREDENTIALS = [
     "neato",
     "nest",
     "netatmo",
+    "ondilo_ico",
     "senz",
     "spotify",
     "twitch",
