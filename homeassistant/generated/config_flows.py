@@ -112,6 +112,7 @@ FLOWS = {
         "devolo_home_network",
         "dexcom",
         "dialogflow",
+        "dio_chacon",
         "directv",
         "discord",
         "discovergy",
