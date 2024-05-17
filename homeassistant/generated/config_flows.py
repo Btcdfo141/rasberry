@@ -325,6 +325,7 @@ FLOWS = {
         "metoffice",
         "microbees",
         "mikrotik",
+        "mikrotik_bt5",
         "mill",
         "minecraft_server",
         "mjpeg",
