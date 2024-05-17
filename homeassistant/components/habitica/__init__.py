@@ -15,6 +15,7 @@ from homeassistant.const import (
     CONF_NAME,
     CONF_SENSORS,
     CONF_URL,
+    CONF_VERIFY_SSL,
     Platform,
 )
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -123,6 +124,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: HabiticaConfigEntry) -> 
         name = call.data[ATTR_NAME]
         path = call.data[ATTR_PATH]
         entries = hass.config_entries.async_entries(DOMAIN)
+
         api = None
         for entry in entries:
             if entry.data[CONF_NAME] == name:
@@ -145,21 +147,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: HabiticaConfigEntry) -> 
             EVENT_API_CALL_SUCCESS, {ATTR_NAME: name, ATTR_PATH: path, ATTR_DATA: data}
         )
 
-    websession = async_get_clientsession(hass)
-
-    url = entry.data[CONF_URL]
-    username = entry.data[CONF_API_USER]
-    password = entry.data[CONF_API_KEY]
+    websession = async_get_clientsession(
+        hass, verify_ssl=entry.data.get(CONF_VERIFY_SSL, True)
+    )
 
     api = HAHabitipyAsync(
-        {
-            "url": url,
-            "login": username,
-            "password": password,
+        conf={
+            "url": entry.data[CONF_URL],
+            "login": entry.data[CONF_API_USER],
+            "password": entry.data[CONF_API_KEY],
         }
     )
     try:
-        user = await api.user.get(userFields="profile")
+        user = await api.user.get(userFields="auth")
     except ClientResponseError as e:
         if e.status == HTTPStatus.TOO_MANY_REQUESTS:
             raise ConfigEntryNotReady(
@@ -168,11 +168,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: HabiticaConfigEntry) -> 
             ) from e
         raise ConfigEntryNotReady(e) from e
 
-    if not entry.data.get(CONF_NAME):
-        name = user["profile"]["name"]
+    if entry.data.get(CONF_NAME) != user["auth"]["local"]["username"]:
         hass.config_entries.async_update_entry(
             entry,
-            data={**entry.data, CONF_NAME: name},
+            data={**entry.data, CONF_NAME: user["auth"]["local"]["username"]},
         )
 
     coordinator = HabiticaDataUpdateCoordinator(hass, api)
