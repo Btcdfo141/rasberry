@@ -516,6 +516,7 @@ omit =
     homeassistant/components/habitica/__init__.py
     homeassistant/components/habitica/coordinator.py
     homeassistant/components/habitica/sensor.py
+    homeassistant/components/habitica/todo.py
     homeassistant/components/harman_kardon_avr/media_player.py
     homeassistant/components/harmony/data.py
     homeassistant/components/harmony/remote.py
