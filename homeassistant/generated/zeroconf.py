@@ -535,6 +535,10 @@ ZEROCONF = {
             "name": "rainmachine*",
         },
         {
+            "domain": "senziio",
+            "name": "senziio*",
+        },
+        {
             "domain": "shelly",
             "name": "shelly*",
         },
