@@ -696,7 +696,7 @@
     'supported_features': 0,
     'translation_key': None,
     'unique_id': 'aabbccddeeff_active_reactive_power_var',
-    'unit_of_measurement': 'var',
+    'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
   })
 # ---
 # name: test_sensors[HWE-KWH1-entity_ids7][sensor.device_reactive_power:state]
@@ -705,7 +705,7 @@
       'device_class': 'reactive_power',
       'friendly_name': 'Device Reactive power',
       'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
-      'unit_of_measurement': 'var',
+      'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
     }),
     'context': <ANY>,
     'entity_id': 'sensor.device_reactive_power',
@@ -2572,7 +2572,7 @@
     'supported_features': 0,
     'translation_key': None,
     'unique_id': 'aabbccddeeff_active_reactive_power_var',
-    'unit_of_measurement': 'var',
+    'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
   })
 # ---
 # name: test_sensors[HWE-KWH3-entity_ids8][sensor.device_reactive_power:state]
@@ -2581,7 +2581,7 @@
       'device_class': 'reactive_power',
       'friendly_name': 'Device Reactive power',
       'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
-      'unit_of_measurement': 'var',
+      'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
     }),
     'context': <ANY>,
     'entity_id': 'sensor.device_reactive_power',
@@ -2657,7 +2657,7 @@
     'supported_features': 0,
     'translation_key': 'active_reactive_power_phase_var',
     'unique_id': 'aabbccddeeff_active_reactive_power_l1_var',
-    'unit_of_measurement': 'var',
+    'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
   })
 # ---
 # name: test_sensors[HWE-KWH3-entity_ids8][sensor.device_reactive_power_phase_1:state]
@@ -2666,7 +2666,7 @@
       'device_class': 'reactive_power',
       'friendly_name': 'Device Reactive power phase 1',
       'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
-      'unit_of_measurement': 'var',
+      'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
     }),
     'context': <ANY>,
     'entity_id': 'sensor.device_reactive_power_phase_1',
@@ -2742,7 +2742,7 @@
     'supported_features': 0,
     'translation_key': 'active_reactive_power_phase_var',
     'unique_id': 'aabbccddeeff_active_reactive_power_l2_var',
-    'unit_of_measurement': 'var',
+    'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
   })
 # ---
 # name: test_sensors[HWE-KWH3-entity_ids8][sensor.device_reactive_power_phase_2:state]
@@ -2751,7 +2751,7 @@
       'device_class': 'reactive_power',
       'friendly_name': 'Device Reactive power phase 2',
       'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
-      'unit_of_measurement': 'var',
+      'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
     }),
     'context': <ANY>,
     'entity_id': 'sensor.device_reactive_power_phase_2',
@@ -2827,7 +2827,7 @@
     'supported_features': 0,
     'translation_key': 'active_reactive_power_phase_var',
     'unique_id': 'aabbccddeeff_active_reactive_power_l3_var',
-    'unit_of_measurement': 'var',
+    'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
   })
 # ---
 # name: test_sensors[HWE-KWH3-entity_ids8][sensor.device_reactive_power_phase_3:state]
@@ -2836,7 +2836,7 @@
       'device_class': 'reactive_power',
       'friendly_name': 'Device Reactive power phase 3',
       'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
-      'unit_of_measurement': 'var',
+      'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
     }),
     'context': <ANY>,
     'entity_id': 'sensor.device_reactive_power_phase_3',
@@ -10887,7 +10887,7 @@
     'supported_features': 0,
     'translation_key': None,
     'unique_id': 'aabbccddeeff_active_reactive_power_var',
-    'unit_of_measurement': 'var',
+    'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
   })
 # ---
 # name: test_sensors[HWE-SKT-21-entity_ids3][sensor.device_reactive_power:state]
@@ -10896,7 +10896,7 @@
       'device_class': 'reactive_power',
       'friendly_name': 'Device Reactive power',
       'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
-      'unit_of_measurement': 'var',
+      'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
     }),
     'context': <ANY>,
     'entity_id': 'sensor.device_reactive_power',
@@ -12152,7 +12152,7 @@
     'supported_features': 0,
     'translation_key': None,
     'unique_id': 'aabbccddeeff_active_reactive_power_var',
-    'unit_of_measurement': 'var',
+    'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
   })
 # ---
 # name: test_sensors[SDM230-entity_ids5][sensor.device_reactive_power:state]
@@ -12161,7 +12161,7 @@
       'device_class': 'reactive_power',
       'friendly_name': 'Device Reactive power',
       'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
-      'unit_of_measurement': 'var',
+      'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
     }),
     'context': <ANY>,
     'entity_id': 'sensor.device_reactive_power',
@@ -14028,7 +14028,7 @@
     'supported_features': 0,
     'translation_key': None,
     'unique_id': 'aabbccddeeff_active_reactive_power_var',
-    'unit_of_measurement': 'var',
+    'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
   })
 # ---
 # name: test_sensors[SDM630-entity_ids6][sensor.device_reactive_power:state]
@@ -14037,7 +14037,7 @@
       'device_class': 'reactive_power',
       'friendly_name': 'Device Reactive power',
       'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
-      'unit_of_measurement': 'var',
+      'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
     }),
     'context': <ANY>,
     'entity_id': 'sensor.device_reactive_power',
@@ -14113,7 +14113,7 @@
     'supported_features': 0,
     'translation_key': 'active_reactive_power_phase_var',
     'unique_id': 'aabbccddeeff_active_reactive_power_l1_var',
-    'unit_of_measurement': 'var',
+    'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
   })
 # ---
 # name: test_sensors[SDM630-entity_ids6][sensor.device_reactive_power_phase_1:state]
@@ -14122,7 +14122,7 @@
       'device_class': 'reactive_power',
       'friendly_name': 'Device Reactive power phase 1',
       'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
-      'unit_of_measurement': 'var',
+      'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
     }),
     'context': <ANY>,
     'entity_id': 'sensor.device_reactive_power_phase_1',
@@ -14198,7 +14198,7 @@
     'supported_features': 0,
     'translation_key': 'active_reactive_power_phase_var',
     'unique_id': 'aabbccddeeff_active_reactive_power_l2_var',
-    'unit_of_measurement': 'var',
+    'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
   })
 # ---
 # name: test_sensors[SDM630-entity_ids6][sensor.device_reactive_power_phase_2:state]
@@ -14207,7 +14207,7 @@
       'device_class': 'reactive_power',
       'friendly_name': 'Device Reactive power phase 2',
       'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
-      'unit_of_measurement': 'var',
+      'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
     }),
     'context': <ANY>,
     'entity_id': 'sensor.device_reactive_power_phase_2',
@@ -14283,7 +14283,7 @@
     'supported_features': 0,
     'translation_key': 'active_reactive_power_phase_var',
     'unique_id': 'aabbccddeeff_active_reactive_power_l3_var',
-    'unit_of_measurement': 'var',
+    'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
   })
 # ---
 # name: test_sensors[SDM630-entity_ids6][sensor.device_reactive_power_phase_3:state]
@@ -14292,7 +14292,7 @@
       'device_class': 'reactive_power',
       'friendly_name': 'Device Reactive power phase 3',
       'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
-      'unit_of_measurement': 'var',
+      'unit_of_measurement': <UnitOfReactivePower.VOLT_AMPERE_REACTIVE: 'var'>,
     }),
     'context': <ANY>,
     'entity_id': 'sensor.device_reactive_power_phase_3',
