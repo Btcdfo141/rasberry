@@ -1,13 +1,13 @@
-"""Support for TPLink switch entities."""
+"""Support for TPLink binary sensors."""
 
 from __future__ import annotations
 
-import logging
-from typing import Any, cast
+from kasa import Feature, Device
 
-from kasa import Device, Feature
-
-from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
+from homeassistant.components.binary_sensor import (
+    BinarySensorEntity,
+    BinarySensorEntityDescription,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -18,11 +18,8 @@ from .entity import (
     CoordinatedTPLinkEntity,
     _description_for_feature,
     _entities_for_device_and_its_children,
-    async_refresh_after,
 )
 from .models import TPLinkData
-
-_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -30,23 +27,23 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up switches."""
+    """Set up sensors."""
     data: TPLinkData = hass.data[DOMAIN][config_entry.entry_id]
     parent_coordinator = data.parent_coordinator
-    device = cast(Device, parent_coordinator.device)
+    device = parent_coordinator.device
 
     entities = _entities_for_device_and_its_children(
         device,
-        feature_type=Feature.Switch,
-        entity_class=Switch,
+        feature_type=Feature.BinarySensor,
+        entity_class=BinarySensor,
         coordinator=parent_coordinator,
     )
 
     async_add_entities(entities)
 
 
-class Switch(CoordinatedTPLinkEntity, SwitchEntity):
-    """Representation of a feature-based TPLink sensor."""
+class BinarySensor(CoordinatedTPLinkEntity, BinarySensorEntity):
+    """Representation of a TPLink binary sensor."""
 
     def __init__(
         self,
@@ -54,29 +51,14 @@ class Switch(CoordinatedTPLinkEntity, SwitchEntity):
         coordinator: TPLinkDataUpdateCoordinator,
         feature: Feature,
         parent: Device | None = None,
-    ):
-        """Initialize the switch."""
+    ) -> None:
+        """Initialize the sensor."""
         super().__init__(device, coordinator, feature=feature, parent=parent)
         self._feature: Feature
-
-        # Use the device name for the primary switch control
-        if feature.category is Feature.Category.Primary:
-            self._attr_name = None
-
-        # TODO: generalize creation of entitydescription into CoordinatedTPLinkEntity?
         self.entity_description = _description_for_feature(
-            SwitchEntityDescription, feature
+            BinarySensorEntityDescription, feature
         )
-
-    @async_refresh_after
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn the switch on."""
-        await self._feature.set_value(True)
-
-    @async_refresh_after
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn the switch off."""
-        await self._feature.set_value(False)
+        self._async_update_attrs()
 
     @callback
     def _async_update_attrs(self) -> None:

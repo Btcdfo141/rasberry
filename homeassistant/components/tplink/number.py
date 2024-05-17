@@ -1,13 +1,13 @@
-"""Support for TPLink switch entities."""
+"""Support for TPLink number entities."""
 
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
+from typing import cast
 
-from kasa import Device, Feature
+from kasa import Feature, Device, SmartPlug
 
-from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
+from homeassistant.components.number import NumberEntity, NumberEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -30,22 +30,22 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up switches."""
+    """Set up number entities."""
     data: TPLinkData = hass.data[DOMAIN][config_entry.entry_id]
     parent_coordinator = data.parent_coordinator
-    device = cast(Device, parent_coordinator.device)
+    device = parent_coordinator.device
 
     entities = _entities_for_device_and_its_children(
         device,
-        feature_type=Feature.Switch,
-        entity_class=Switch,
+        feature_type=Feature.Number,
+        entity_class=Number,
         coordinator=parent_coordinator,
     )
 
     async_add_entities(entities)
 
 
-class Switch(CoordinatedTPLinkEntity, SwitchEntity):
+class Number(CoordinatedTPLinkEntity, NumberEntity):
     """Representation of a feature-based TPLink sensor."""
 
     def __init__(
@@ -55,30 +55,22 @@ class Switch(CoordinatedTPLinkEntity, SwitchEntity):
         feature: Feature,
         parent: Device | None = None,
     ):
-        """Initialize the switch."""
+        """Initialize the number entity."""
         super().__init__(device, coordinator, feature=feature, parent=parent)
         self._feature: Feature
-
-        # Use the device name for the primary switch control
-        if feature.category is Feature.Category.Primary:
-            self._attr_name = None
-
-        # TODO: generalize creation of entitydescription into CoordinatedTPLinkEntity?
         self.entity_description = _description_for_feature(
-            SwitchEntityDescription, feature
+            NumberEntityDescription,
+            feature,
+            native_min_value=feature.minimum_value,
+            native_max_value=feature.maximum_value,
         )
 
     @async_refresh_after
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn the switch on."""
-        await self._feature.set_value(True)
-
-    @async_refresh_after
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn the switch off."""
-        await self._feature.set_value(False)
+    async def async_set_native_value(self, value: float) -> None:
+        """Set feature value."""
+        await self._feature.set_value(int(value))
 
     @callback
     def _async_update_attrs(self) -> None:
         """Update the entity's attributes."""
-        self._attr_is_on = self._feature.value
+        self._attr_native_value = self._feature.value
