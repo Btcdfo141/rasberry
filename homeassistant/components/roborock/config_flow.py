@@ -17,10 +17,29 @@ from roborock.exceptions import (
 from roborock.web_api import RoborockApiClient
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+    OptionsFlowWithConfigEntry,
+)
 from homeassistant.const import CONF_USERNAME
+from homeassistant.core import callback
 
-from .const import CONF_BASE_URL, CONF_ENTRY_CODE, CONF_USER_DATA, DOMAIN
+from .const import (
+    CONF_BASE_URL,
+    CONF_ENTRY_CODE,
+    CONF_INCLUDE_SHARED,
+    CONF_USER_DATA,
+    DEFAULT_DRAWABLES,
+    DEFAULT_INCLUDE_SHARED,
+    DEFAULT_SIZES,
+    DOMAIN,
+    DRAWABLES,
+    MAPS,
+    SIZES,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -107,9 +126,6 @@ class RoborockFlowHandler(ConfigFlow, domain=DOMAIN):
                             CONF_USER_DATA: login_data.as_dict(),
                         },
                     )
-                    await self.hass.config_entries.async_reload(
-                        self.reauth_entry.entry_id
-                    )
                     return self.async_abort(reason="reauth_successful")
                 return self._create_entry(self._client, self._username, login_data)
 
@@ -153,4 +169,97 @@ class RoborockFlowHandler(ConfigFlow, domain=DOMAIN):
                 CONF_USER_DATA: user_data.as_dict(),
                 CONF_BASE_URL: client.base_url,
             },
+        )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: ConfigEntry,
+    ) -> OptionsFlow:
+        """Create the options flow."""
+        return RoborockOptionsFlowHandler(config_entry)
+
+
+class RoborockOptionsFlowHandler(OptionsFlowWithConfigEntry):
+    """Handle an option flow for Roborock."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Manage the options."""
+        return self.async_show_menu(step_id="init", menu_options=[DOMAIN, MAPS])
+
+    async def async_step_roborock(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Manage the options domain wide."""
+        if user_input is not None:
+            return self.async_create_entry(
+                title="", data={**self.config_entry.options, **user_input}
+            )
+        return self.async_show_form(
+            step_id=DOMAIN,
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_INCLUDE_SHARED,
+                        default=self.config_entry.options.get(
+                            CONF_INCLUDE_SHARED, DEFAULT_INCLUDE_SHARED
+                        ),
+                    ): bool
+                }
+            ),
+        )
+
+    async def async_step_maps(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Open the menu for the map options."""
+        return self.async_show_menu(step_id=MAPS, menu_options=[DRAWABLES, SIZES])
+
+    async def async_step_sizes(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Manage the map object size options."""
+        if user_input is not None:
+            new_sizes = {
+                SIZES: {**self.config_entry.options.get(SIZES, {}), **user_input}
+            }
+            return self.async_create_entry(
+                title="", data={**self.config_entry.options, **new_sizes}
+            )
+        data_schema = {}
+        current_sizes = self.config_entry.options.get(SIZES, {})
+        for size, default_value in DEFAULT_SIZES.items():
+            data_schema[
+                vol.Required(
+                    size.value,
+                    default=current_sizes.get(size, default_value),
+                )
+            ] = vol.All(vol.Coerce(float), vol.Range(min=0))
+        return self.async_show_form(
+            step_id=SIZES,
+            data_schema=vol.Schema(data_schema),
+        )
+
+    async def async_step_drawables(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Manage the map object drawable options."""
+        if user_input is not None:
+            self.options.setdefault(DRAWABLES, {}).update(user_input)
+            return self.async_create_entry(title="", data=self.options)
+        data_schema = {}
+        for drawable, default_value in DEFAULT_DRAWABLES.items():
+            data_schema[
+                vol.Required(
+                    drawable.value,
+                    default=self.config_entry.options.get(DRAWABLES, {}).get(
+                        drawable, default_value
+                    ),
+                )
+            ] = bool
+        return self.async_show_form(
+            step_id=DRAWABLES,
+            data_schema=vol.Schema(data_schema),
         )
