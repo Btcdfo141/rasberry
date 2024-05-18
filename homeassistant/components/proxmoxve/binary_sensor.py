@@ -6,12 +6,22 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .const import COORDINATORS, DOMAIN, PROXMOX_CLIENTS
+from .const import (
+    _LOGGER,
+    CONF_CONTAINERS,
+    CONF_NODE,
+    CONF_VMS,
+    COORDINATORS,
+    DOMAIN,
+    PROXMOX_CLIENTS,
+)
 from .entity import ProxmoxEntity
 
 
@@ -51,6 +61,47 @@ async def async_setup_platform(
                 sensors.append(sensor)
 
     add_entities(sensors)
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+    discovery_info: DiscoveryInfoType | None = None,
+) -> None:
+    """Set up binary sensors."""
+    sensors: list[ProxmoxBinarySensor] = []
+    host_name = entry.data[CONF_HOST]
+    host_name_coordinators = hass.data[DOMAIN][COORDINATORS][host_name]
+
+    if hass.data[PROXMOX_CLIENTS][host_name] is None:
+        _LOGGER.error("Proxmox client not found for host %s", host_name)
+        return
+
+    for dev_id in entry.options.get(CONF_VMS, []) + entry.options.get(
+        CONF_CONTAINERS, []
+    ):
+        coordinator = host_name_coordinators[entry.data[CONF_NODE]][dev_id]
+
+        if (coordinator_data := coordinator.data) is None:
+            _LOGGER.error(
+                "Coordinator data not found for host %s node %s dev_id %s",
+                host_name,
+                entry.data[CONF_NODE],
+                dev_id,
+            )
+            continue
+
+        sensor = create_binary_sensor(
+            coordinator,
+            host_name,
+            entry.data[CONF_NODE],
+            dev_id,
+            coordinator_data["name"],
+        )
+        sensors.append(sensor)
+
+    async_add_entities(sensors)
 
 
 def create_binary_sensor(
