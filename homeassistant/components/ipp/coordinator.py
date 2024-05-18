@@ -30,6 +30,7 @@ class IPPDataUpdateCoordinator(DataUpdateCoordinator[IPPPrinter]):
         base_path: str,
         tls: bool,
         verify_ssl: bool,
+        proto_legacy: bool,
         device_id: str,
     ) -> None:
         """Initialize global IPP data updater."""
@@ -41,6 +42,7 @@ class IPPDataUpdateCoordinator(DataUpdateCoordinator[IPPPrinter]):
             tls=tls,
             verify_ssl=verify_ssl,
             session=async_get_clientsession(hass, verify_ssl),
+            ipp_version=(1, 1) if proto_legacy else (2,0),
         )
 
         super().__init__(
