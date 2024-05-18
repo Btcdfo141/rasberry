@@ -266,6 +266,7 @@ class DPCode(StrEnum):
     RESET_FILTER = "reset_filter"
     RESET_MAP = "reset_map"
     RESET_ROLL_BRUSH = "reset_roll_brush"
+    REVERSE_ENERGY_TOTAL = "reverse_energy_total"
     ROLL_BRUSH = "roll_brush"
     SEEK = "seek"
     SENSITIVITY = "sensitivity"  # Sensitivity
@@ -341,6 +342,7 @@ class DPCode(StrEnum):
     TOTAL_FORWARD_ENERGY = "total_forward_energy"
     TOTAL_TIME = "total_time"
     TOTAL_PM = "total_pm"
+    TOTAL_POWER = "total_power"
     TVOC = "tvoc"
     UPPER_TEMP = "upper_temp"
     UPPER_TEMP_F = "upper_temp_f"
