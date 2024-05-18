@@ -333,6 +333,11 @@ BINARY_SENSORS: dict[str, tuple[TuyaBinarySensorEntityDescription, ...]] = {
             on_value="tilt",
         ),
     ),
+    # Thermostatic Radiator Valve TRV60x
+    # Not documented
+    "wk": (
+        TAMPER_BINARY_SENSOR,
+    ),
 }
 
 
