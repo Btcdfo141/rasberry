@@ -9,17 +9,15 @@ from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 
+from . import TEST_DEVICE_ID, TEST_TAG_ID, TEST_TAG_NAME
+
 from tests.common import async_capture_events
 from tests.typing import WebSocketGenerator
-
-TEST_TAG_ID = "test tag id"
-TEST_TAG_NAME = "test tag name"
-TEST_DEVICE_ID = "device id"
 
 
 @pytest.fixture
 def storage_setup_named_tag(
-    hass,
+    hass: HomeAssistant,
     hass_storage,
 ):
     """Storage setup for test case of named tags."""
@@ -29,7 +27,15 @@ def storage_setup_named_tag(
             hass_storage[DOMAIN] = {
                 "key": DOMAIN,
                 "version": 1,
-                "data": {"items": [{"id": TEST_TAG_ID, CONF_NAME: TEST_TAG_NAME}]},
+                "data": {
+                    "items": [
+                        {
+                            "id": TEST_TAG_ID,
+                            "tag_id": TEST_TAG_ID,
+                            CONF_NAME: TEST_TAG_NAME,
+                        }
+                    ]
+                },
             }
         else:
             hass_storage[DOMAIN] = items
@@ -67,7 +73,7 @@ async def test_named_tag_scanned_event(
 
 
 @pytest.fixture
-def storage_setup_unnamed_tag(hass, hass_storage):
+def storage_setup_unnamed_tag(hass: HomeAssistant, hass_storage):
     """Storage setup for test case of unnamed tags."""
 
     async def _storage(items=None):
@@ -75,7 +81,7 @@ def storage_setup_unnamed_tag(hass, hass_storage):
             hass_storage[DOMAIN] = {
                 "key": DOMAIN,
                 "version": 1,
-                "data": {"items": [{"id": TEST_TAG_ID}]},
+                "data": {"items": [{"id": TEST_TAG_ID, "tag_id": TEST_TAG_ID}]},
             }
         else:
             hass_storage[DOMAIN] = items

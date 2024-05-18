@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any, final
 import uuid
 
 import voluptuous as vol
@@ -12,16 +13,18 @@ from homeassistant.core import Context, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import collection
 import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
-from homeassistant.loader import bind_hass
+from homeassistant.util import slugify
 import homeassistant.util.dt as dt_util
 
-from .const import DEVICE_ID, DOMAIN, EVENT_TAG_SCANNED, TAG_ID
+from .const import DEFAULT_NAME, DEVICE_ID, DOMAIN, EVENT_TAG_SCANNED, TAG_ID
 
 _LOGGER = logging.getLogger(__name__)
 
 LAST_SCANNED = "last_scanned"
+LAST_SCANNED_BY_DEVICE_ID = "last_scanned_by_device_id"
 STORAGE_KEY = DOMAIN
 STORAGE_VERSION = 1
 TAGS = "tags"
@@ -31,12 +34,14 @@ CREATE_FIELDS = {
     vol.Optional(CONF_NAME): vol.All(str, vol.Length(min=1)),
     vol.Optional("description"): cv.string,
     vol.Optional(LAST_SCANNED): cv.datetime,
+    vol.Optional(DEVICE_ID): cv.string,
 }
 
 UPDATE_FIELDS = {
     vol.Optional(CONF_NAME): vol.All(str, vol.Length(min=1)),
     vol.Optional("description"): cv.string,
     vol.Optional(LAST_SCANNED): cv.datetime,
+    vol.Optional(DEVICE_ID): cv.string,
 }
 
 CONFIG_SCHEMA = cv.empty_config_schema(DOMAIN)
@@ -105,10 +110,62 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         storage_collection, DOMAIN, DOMAIN, CREATE_FIELDS, UPDATE_FIELDS
     ).async_setup(hass)
 
+    entities: dict[str, TagEntity] = {}
+
+    async def tag_change_listener(
+        change_type: str, item_id: str, updated_config: dict
+    ) -> None:
+        """Tag storage change listener."""
+
+        if _LOGGER.isEnabledFor(logging.DEBUG):
+            _LOGGER.debug(
+                "%s, item: %s, update: %s", change_type, item_id, updated_config
+            )
+        if change_type == collection.CHANGE_ADDED:
+            # When tags are added to storage
+            entities[updated_config[TAG_ID]] = TagEntity(
+                hass,
+                updated_config.get(CONF_NAME, DEFAULT_NAME),
+                updated_config[TAG_ID],
+                updated_config.get(LAST_SCANNED),
+                updated_config.get(DEVICE_ID),
+            )
+            await entities[updated_config[TAG_ID]].async_add_initial_state()
+
+        if change_type == collection.CHANGE_UPDATED:
+            # When tags are changed or updated in storage
+            if entities[updated_config[TAG_ID]]._last_scanned != updated_config.get(  # noqa: SLF001
+                LAST_SCANNED
+            ):
+                entities[updated_config[TAG_ID]].async_handle_event(
+                    updated_config.get(DEVICE_ID),
+                    updated_config.get(LAST_SCANNED),
+                )
+
+        # Deleted tags
+        if change_type == collection.CHANGE_REMOVED:
+            # When tags is removed from storage
+            await entities[updated_config[TAG_ID]].async_remove()
+            entity_id = entities[updated_config[TAG_ID]].entity_id
+            hass.states.async_remove(entity_id)
+            entities.pop(updated_config[TAG_ID])
+
+    storage_collection.async_add_listener(tag_change_listener)
+
+    for tag in storage_collection.async_items():
+        _LOGGER.debug("Adding tag: %s", tag)
+        entities[tag[TAG_ID]] = TagEntity(
+            hass,
+            tag.get(CONF_NAME, DEFAULT_NAME),
+            tag[TAG_ID],
+            tag.get(LAST_SCANNED),
+            tag.get(DEVICE_ID),
+        )
+        await entities[tag[TAG_ID]].async_add_initial_state()
+
     return True
 
 
-@bind_hass
 async def async_scan_tag(
     hass: HomeAssistant,
     tag_id: str,
@@ -119,7 +176,7 @@ async def async_scan_tag(
     if DOMAIN not in hass.config.components:
         raise HomeAssistantError("tag component has not been set up.")
 
-    helper = hass.data[DOMAIN][TAGS]
+    helper: TagStorageCollection = hass.data[DOMAIN][TAGS]
 
     # Get name from helper, default value None if not present in data
     tag_name = None
@@ -132,8 +189,83 @@ async def async_scan_tag(
         context=context,
     )
 
+    _add_device_id = {}
+    if device_id:
+        _add_device_id[DEVICE_ID] = device_id
     if tag_id in helper.data:
-        await helper.async_update_item(tag_id, {LAST_SCANNED: dt_util.utcnow()})
+        await helper.async_update_item(
+            tag_id, {LAST_SCANNED: dt_util.utcnow(), **_add_device_id}
+        )
     else:
-        await helper.async_create_item({TAG_ID: tag_id, LAST_SCANNED: dt_util.utcnow()})
+        await helper.async_create_item(
+            {TAG_ID: tag_id, LAST_SCANNED: dt_util.utcnow(), **_add_device_id}
+        )
     _LOGGER.debug("Tag: %s scanned by device: %s", tag_id, device_id)
+
+
+class TagEntity(Entity):
+    """Representation of a Tag entity."""
+
+    _unrecorded_attributes = frozenset({TAG_ID})
+    _attr_translation_key = DOMAIN
+    _attr_should_poll = False
+
+    # Implements it's own platform
+    _no_platform_reported = True
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        name: str,
+        tag_id: str,
+        last_scanned: str | None,
+        device_id: str | None,
+    ) -> None:
+        """Initialize the Tag event."""
+        self.entity_id = f"tag.{slugify(name)}"
+        self.hass = hass
+        self._attr_name = name
+        self._tag_id = tag_id
+        self._last_device_id: str | None = device_id
+        self._last_scanned = last_scanned
+
+        self._state_info = {
+            "unrecorded_attributes": self._Entity__combined_unrecorded_attributes  # type: ignore[attr-defined]
+        }
+
+    @callback
+    def async_handle_event(
+        self, device_id: str | None, last_scanned: str | None
+    ) -> None:
+        """Handle the Tag scan event."""
+        if _LOGGER.isEnabledFor(logging.DEBUG):
+            _LOGGER.debug(
+                "Tag scanned for %s with device %s last scanned before %s and scanned now %s",
+                self._tag_id,
+                device_id,
+                self._last_scanned,
+                last_scanned,
+            )
+        self._last_device_id = device_id
+        self._last_scanned = last_scanned
+        self.async_write_ha_state()
+
+    @property
+    @final
+    def state(self) -> str | None:
+        """Return the entity state."""
+        if (
+            not self._last_scanned
+            or (last_scanned := dt_util.parse_datetime(self._last_scanned)) is None
+        ):
+            return None
+        return last_scanned.isoformat(timespec="milliseconds")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the state attributes of the sun."""
+        return {TAG_ID: self._tag_id, LAST_SCANNED_BY_DEVICE_ID: self._last_device_id}
+
+    async def async_add_initial_state(self) -> None:
+        """Add initial state."""
+        self.async_write_ha_state()
