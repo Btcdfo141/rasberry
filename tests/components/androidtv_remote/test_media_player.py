@@ -267,6 +267,18 @@ async def test_media_player_play_media(
     )
     mock_api.send_launch_app_command.assert_called_with("https://www.youtube.com")
 
+    await hass.services.async_call(
+        "media_player",
+        "play_media",
+        {
+            "entity_id": MEDIA_PLAYER_ENTITY,
+            "media_content_type": "app",
+            "media_content_id": "tv.twitch.android.app",
+        },
+        blocking=True,
+    )
+    mock_api.send_launch_app_command.assert_called_with("tv.twitch.android.app")
+
     with pytest.raises(ValueError):
         await hass.services.async_call(
             "media_player",
