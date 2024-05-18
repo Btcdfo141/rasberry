@@ -6,6 +6,7 @@ from freezegun import freeze_time
 import pytest
 
 from homeassistant.components import light, switch
+from homeassistant.components.flux.switch import CONF_DISABLE_BRIGHTNESS_ADJUST
 from homeassistant.const import (
     ATTR_ENTITY_ID,
     CONF_PLATFORM,
@@ -962,11 +963,11 @@ async def test_flux_with_custom_colortemps(
     assert call.data[light.ATTR_XY_COLOR] == [0.469, 0.378]
 
 
-async def test_flux_with_custom_brightness(
+async def test_flux_brightness_adjust_option_migration(
     hass: HomeAssistant,
     mock_light_entities: list[MockLight],
 ) -> None:
-    """Test the flux with custom start and stop colortemps."""
+    """Test if the old yaml config setting (CONF_DISABLE_BRIGHTNESS_ADJUST) is successfully changed to the new option(CONF_ADJUST_BRIGHTNESS)."""
     setup_test_component_platform(hass, light.DOMAIN, mock_light_entities)
 
     assert await async_setup_component(
@@ -1006,7 +1007,7 @@ async def test_flux_with_custom_brightness(
                     "platform": "flux",
                     "name": "flux",
                     "lights": [ent1.entity_id],
-                    "brightness": 255,
+                    CONF_DISABLE_BRIGHTNESS_ADJUST: True,
                     "stop_time": "22:00",
                 }
             },
@@ -1021,8 +1022,10 @@ async def test_flux_with_custom_brightness(
         )
         async_fire_time_changed(hass, test_time)
         await hass.async_block_till_done()
+
     call = turn_on_calls[-1]
-    assert call.data[light.ATTR_BRIGHTNESS] == 255
+    # Assume that no brightness means that it was not adjusted.
+    assert light.ATTR_BRIGHTNESS not in call.data
     assert call.data[light.ATTR_XY_COLOR] == [0.506, 0.385]
 
 
