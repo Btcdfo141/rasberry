@@ -580,18 +580,23 @@ def websocket_refresh_tokens(
         else:
             auth_provider_type = None
 
+        expire_at = None
+        if refresh.expire_at:
+            expire_at = dt_util.utc_from_timestamp(refresh.expire_at)
+
         tokens.append(
             {
-                "id": refresh.id,
+                "auth_provider_type": auth_provider_type,
+                "client_icon": refresh.client_icon,
                 "client_id": refresh.client_id,
                 "client_name": refresh.client_name,
-                "client_icon": refresh.client_icon,
-                "type": refresh.token_type,
                 "created_at": refresh.created_at,
+                "expire_at": expire_at,
+                "id": refresh.id,
                 "is_current": refresh.id == current_id,
                 "last_used_at": refresh.last_used_at,
                 "last_used_ip": refresh.last_used_ip,
-                "auth_provider_type": auth_provider_type,
+                "type": refresh.token_type,
             }
         )
 
@@ -694,3 +699,25 @@ def websocket_sign_path(
             },
         )
     )
+
+
+@callback
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "auth/remove_expiry_date_refresh_token",
+        vol.Required("refresh_token_id"): str,
+    }
+)
+@websocket_api.ws_require_user()
+def websocket_remove_expiry_date_refresh_token(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Handle a remove expiry date from refresh token request."""
+    refresh_token = connection.user.refresh_tokens.get(msg["refresh_token_id"])
+
+    if refresh_token is None:
+        connection.send_error(msg["id"], "invalid_token_id", "Received invalid token")
+        return
+
+    hass.auth.async_remove_expiry_date(refresh_token)
+    connection.send_result(msg["id"], {})
