@@ -113,9 +113,9 @@ async def async_set_value(entity: NumberEntity, service_call: ServiceCall) -> No
         native_value = min(
             max(native_value, entity.native_min_value), entity.native_max_value
         )
-        await entity.async_set_native_value(native_value)
+        await entity.async_set_native_value(entity.clamp_native_step(native_value))
     except NotImplementedError:
-        await entity.async_set_value(value)
+        await entity.async_set_value(entity.clamp_native_step(value))
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -142,6 +142,7 @@ class NumberEntityDescription(EntityDescription, frozen_or_thawed=True):
     native_step: float | None = None
     native_unit_of_measurement: str | None = None
     step: None = None
+    clamp: bool | None = None
     unit_of_measurement: None = None  # Type override, use native_unit_of_measurement
 
 
@@ -182,6 +183,7 @@ class NumberEntity(Entity, cached_properties=CACHED_PROPERTIES_WITH_ATTR_):
     )
 
     entity_description: NumberEntityDescription
+    _attr_clamp: bool
     _attr_device_class: NumberDeviceClass | None
     _attr_max_value: None
     _attr_min_value: None
@@ -326,8 +328,27 @@ class NumberEntity(Entity, cached_properties=CACHED_PROPERTIES_WITH_ATTR_):
         """Return the increment/decrement step."""
         return self._calculate_step(self.min_value, self.max_value)
 
+    @property
+    @final
+    def clamp(self) -> bool:
+        """Return if the value being set needs to be validated.
+
+        When clamp is `True`, setting native_value is validated to be
+        a multiple of the native step value.
+        """
+        if not self.native_step:
+            return False
+        if hasattr(self, "_attr_clamp") and self._attr_clamp:
+            return True
+        if hasattr(self, "entity_description") and self.entity_description.clamp:
+            return True
+        return False
+
     def _calculate_step(self, min_value: float, max_value: float) -> float:
         """Return the increment/decrement step."""
+        if self.clamp and self.native_step is not None:
+            steps = (self.native_max_value - self.native_min_value) / self.native_step
+            return (self.max_value - self.min_value) / steps
         if (native_step := self.native_step) is not None:
             return native_step
         step = DEFAULT_STEP
@@ -336,6 +357,16 @@ class NumberEntity(Entity, cached_properties=CACHED_PROPERTIES_WITH_ATTR_):
             while value_range <= step:
                 step /= 10.0
         return step
+
+    @callback
+    @final
+    def clamp_native_step(self, native_value: float) -> float:
+        """Clamp to a native value that matches a value in the native scale."""
+        if not self.clamp or self.native_step is None:
+            return native_value
+        step_factor_value = (native_value - self.native_min_value) / self.native_step
+        clamped_factor = float(round(step_factor_value))
+        return self.native_min_value + self.native_step * clamped_factor
 
     @cached_property
     def mode(self) -> NumberMode:
