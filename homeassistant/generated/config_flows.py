@@ -547,6 +547,7 @@ FLOWS = {
         "tesla_wall_connector",
         "teslemetry",
         "tessie",
+        "tfl",
         "thermobeacon",
         "thermopro",
         "thread",
