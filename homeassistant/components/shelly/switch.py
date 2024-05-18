@@ -33,6 +33,7 @@ from .const import CONF_SLEEP_PERIOD, DOMAIN, GAS_VALVE_OPEN_STATES, MOTION_MODE
 from .coordinator import ShellyBlockCoordinator, ShellyConfigEntry, ShellyRpcCoordinator
 from .entity import (
     BlockEntityDescription,
+    RpcEntityDescription,
     ShellyBlockAttributeEntity,
     ShellyBlockEntity,
     ShellyRpcEntity,
@@ -56,6 +57,14 @@ class BlockSwitchDescription(BlockEntityDescription, SwitchEntityDescription):
     """Class to describe a BLOCK switch."""
 
 
+@dataclass(frozen=True, kw_only=True)
+class RpcSwitchDescription(RpcEntityDescription, SwitchEntityDescription):
+    """Class to describe a RPC sensor."""
+
+    api_call_on: str
+    api_call_off: str
+
+
 # This entity description is deprecated and will be removed in Home Assistant 2024.7.0.
 GAS_VALVE_SWITCH = BlockSwitchDescription(
     key="valve|valve",
@@ -71,6 +80,23 @@ MOTION_SWITCH = BlockSwitchDescription(
     entity_category=EntityCategory.CONFIG,
 )
 
+RPC_SWITCHES = {
+    "switch": RpcSwitchDescription(
+        key="switch",
+        sub_key="output",
+        entity_category=EntityCategory.CONFIG,
+        api_call_on="Switch.Set",
+        api_call_off="Switch.Set",
+    ),
+    "script": RpcSwitchDescription(
+        key="script",
+        sub_key="running",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        api_call_on="Script.Start",
+        api_call_off="Script.Stop",
+    ),
+}
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -79,7 +105,9 @@ async def async_setup_entry(
 ) -> None:
     """Set up switches for device."""
     if get_device_entry_gen(config_entry) in RPC_GENERATIONS:
-        return async_setup_rpc_entry(hass, config_entry, async_add_entities)
+        return async_setup_rpc_entry(
+            hass, config_entry, async_add_entities, RPC_SWITCHES
+        )
 
     return async_setup_block_entry(hass, config_entry, async_add_entities)
 
@@ -153,41 +181,46 @@ def async_setup_rpc_entry(
     hass: HomeAssistant,
     config_entry: ShellyConfigEntry,
     async_add_entities: AddEntitiesCallback,
+    switches: dict[str, RpcSwitchDescription],
 ) -> None:
     """Set up entities for RPC device."""
     coordinator = config_entry.runtime_data.rpc
     assert coordinator
-    switch_key_ids = get_rpc_key_ids(coordinator.device.status, "switch")
 
-    switch_ids = []
-    for id_ in switch_key_ids:
-        if is_rpc_channel_type_light(coordinator.device.config, id_):
-            continue
+    for switch_key in switches:
+        switch_key_ids = get_rpc_key_ids(coordinator.device.status, switch_key)
 
-        if coordinator.model == MODEL_WALL_DISPLAY:
-            # There are three configuration scenarios for WallDisplay:
-            # - relay mode (no thermostat)
-            # - thermostat mode using the internal relay as an actuator
-            # - thermostat mode using an external (from another device) relay as
-            #   an actuator
-            if not is_rpc_thermostat_mode(id_, coordinator.device.status):
-                # The device is not in thermostat mode, we need to remove a climate
-                # entity
-                unique_id = f"{coordinator.mac}-thermostat:{id_}"
-                async_remove_shelly_entity(hass, "climate", unique_id)
-            elif is_rpc_thermostat_internal_actuator(coordinator.device.status):
-                # The internal relay is an actuator, skip this ID so as not to create
-                # a switch entity
+        switch_ids = []
+        for id_ in switch_key_ids:
+            if is_rpc_channel_type_light(coordinator.device.config, id_):
                 continue
 
-        switch_ids.append(id_)
-        unique_id = f"{coordinator.mac}-switch:{id_}"
-        async_remove_shelly_entity(hass, "light", unique_id)
+            if coordinator.model == MODEL_WALL_DISPLAY:
+                # There are three configuration scenarios for WallDisplay:
+                # - relay mode (no thermostat)
+                # - thermostat mode using the internal relay as an actuator
+                # - thermostat mode using an external (from another device) relay as
+                #   an actuator
+                if not is_rpc_thermostat_mode(id_, coordinator.device.status):
+                    # The device is not in thermostat mode, we need to remove a climate
+                    # entity
+                    unique_id = f"{coordinator.mac}-thermostat:{id_}"
+                    async_remove_shelly_entity(hass, "climate", unique_id)
+                elif is_rpc_thermostat_internal_actuator(coordinator.device.status):
+                    # The internal relay is an actuator, skip this ID so as not to create
+                    # a switch entity
+                    continue
 
-    if not switch_ids:
-        return
+            switch_ids.append(id_)
+            unique_id = f"{coordinator.mac}-switch:{id_}"
+            async_remove_shelly_entity(hass, "light", unique_id)
 
-    async_add_entities(RpcRelaySwitch(coordinator, id_) for id_ in switch_ids)
+        if not switch_ids:
+            continue
+
+        async_add_entities(
+            RpcRelaySwitch(coordinator, id_, switches[switch_key]) for id_ in switch_ids
+        )
 
 
 class BlockSleepingMotionSwitch(
@@ -367,20 +400,23 @@ class BlockRelaySwitch(ShellyBlockEntity, SwitchEntity):
 class RpcRelaySwitch(ShellyRpcEntity, SwitchEntity):
     """Entity that controls a relay on RPC based Shelly devices."""
 
-    def __init__(self, coordinator: ShellyRpcCoordinator, id_: int) -> None:
+    def __init__(
+        self, coordinator: ShellyRpcCoordinator, id_: int, switch: RpcSwitchDescription
+    ) -> None:
         """Initialize relay switch."""
-        super().__init__(coordinator, f"switch:{id_}")
+        super().__init__(coordinator, f"{switch.key}:{id_}")
         self._id = id_
+        self._switch = switch
 
     @property
     def is_on(self) -> bool:
         """If switch is on."""
-        return bool(self.status["output"])
+        return bool(self.status[self._switch.sub_key])
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on relay."""
-        await self.call_rpc("Switch.Set", {"id": self._id, "on": True})
+        await self.call_rpc(self._switch.api_call_on, {"id": self._id, "on": True})
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off relay."""
-        await self.call_rpc("Switch.Set", {"id": self._id, "on": False})
+        await self.call_rpc(self._switch.api_call_off, {"id": self._id, "on": False})
