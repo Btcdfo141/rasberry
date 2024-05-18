@@ -1,7 +1,9 @@
 """Test for Roborock init."""
 
+import os
 from unittest.mock import patch
 
+import pytest
 from roborock import RoborockException, RoborockInvalidCredentials
 
 from homeassistant.components.roborock.const import DOMAIN
@@ -145,3 +147,55 @@ async def test_reauth_started(
     flows = hass.config_entries.flow.async_progress()
     assert len(flows) == 1
     assert flows[0]["step_id"] == "reauth_confirm"
+
+
+async def test_remove_from_hass(
+    hass: HomeAssistant,
+    bypass_api_fixture,
+    setup_entry: MockConfigEntry,
+    cleanup_map_storage: str,
+) -> None:
+    """Test that removing from hass removes any existing images."""
+
+    assert (
+        len(
+            os.listdir(
+                hass.config.path(f"{cleanup_map_storage}/{setup_entry.entry_id}")
+            )
+        )
+        != 0
+    )
+    await hass.config_entries.async_remove(setup_entry.entry_id)
+    # After removal, directory should be empty.
+    assert (
+        len(
+            os.listdir(
+                hass.config.path(f"{cleanup_map_storage}/{setup_entry.entry_id}")
+            )
+        )
+        == 0
+    )
+
+
+async def test_oserror_remove_image(
+    hass: HomeAssistant,
+    bypass_api_fixture,
+    setup_entry: MockConfigEntry,
+    cleanup_map_storage: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test that we gracefully handle failing to remove an image."""
+    assert (
+        len(
+            os.listdir(
+                hass.config.path(f"{cleanup_map_storage}/{setup_entry.entry_id}")
+            )
+        )
+        != 0
+    )
+    with patch(
+        "homeassistant.components.roborock.roborock_storage.os.remove",
+        side_effect=OSError,
+    ):
+        await hass.config_entries.async_remove(setup_entry.entry_id)
+    assert f"Unable to remove map files for: {setup_entry.entry_id}" in caplog.text
