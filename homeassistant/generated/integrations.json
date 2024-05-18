@@ -1900,6 +1900,12 @@
         }
       }
     },
+    "flexmeasures": {
+      "name": "FlexMeasures",
+      "integration_type": "hub",
+      "config_flow": true,
+      "iot_class": "cloud_polling"
+    },
     "flexom": {
       "name": "Bouygues Flexom",
       "integration_type": "virtual",
