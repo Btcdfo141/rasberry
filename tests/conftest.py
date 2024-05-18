@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncGenerator, Callable, Coroutine, Generator
 from contextlib import asynccontextmanager, contextmanager
+import datetime
 import functools
 import gc
 import itertools
@@ -65,7 +66,7 @@ from homeassistant.helpers import (
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.setup import BASE_PLATFORMS, async_setup_component
-from homeassistant.util import location
+from homeassistant.util import dt as dt_util, location
 from homeassistant.util.async_ import create_eager_task
 from homeassistant.util.json import json_loads
 
@@ -375,6 +376,13 @@ def verify_cleanup(
         assert isinstance(thread, threading._DummyThread) or thread.name.startswith(
             "waitpid-"
         )
+
+    try:
+        # Verify the default time zone has been restored
+        assert dt_util.DEFAULT_TIME_ZONE is datetime.UTC
+    finally:
+        # Restore the default time zone to not break subsequent tests
+        dt_util.DEFAULT_TIME_ZONE = datetime.UTC
 
 
 @pytest.fixture(autouse=True)
