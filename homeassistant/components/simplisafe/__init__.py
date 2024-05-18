@@ -128,6 +128,7 @@ PLATFORMS = [
     Platform.ALARM_CONTROL_PANEL,
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
+    Platform.CAMERA,
     Platform.LOCK,
     Platform.SENSOR,
 ]
@@ -653,6 +654,10 @@ class SimpliSafe:
 
             if isinstance(result, SimplipyError):
                 raise UpdateFailed(f"SimpliSafe error while updating: {result}")
+
+    async def async_media_request(self, url: str) -> bytes | None:
+        """Fetch a media file."""
+        return await self._api.async_media(url)
 
 
 class SimpliSafeEntity(CoordinatorEntity[DataUpdateCoordinator[None]]):
