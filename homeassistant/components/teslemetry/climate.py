@@ -24,6 +24,8 @@ from .models import TeslemetryVehicleData
 DEFAULT_MIN_TEMP = 15
 DEFAULT_MAX_TEMP = 28
 
+PARALLEL_UPDATES = 0
+
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
