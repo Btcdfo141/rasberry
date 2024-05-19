@@ -21,6 +21,7 @@ from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 
 from .const import DATA_HASS_CONFIG, DOMAIN
+from .services import async_setup_services
 
 PLATFORMS = [Platform.NOTIFY, Platform.SENSOR]
 
@@ -33,6 +34,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Tibber component."""
 
     hass.data[DATA_HASS_CONFIG] = config
+
     return True
 
 
@@ -45,6 +47,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         time_zone=dt_util.DEFAULT_TIME_ZONE,
     )
     hass.data[DOMAIN] = tibber_connection
+
+    async_setup_services(hass)
 
     async def _close(event: Event) -> None:
         await tibber_connection.rt_disconnect()
