@@ -31,6 +31,7 @@
         }
       }
     },
+
     "select": {
       "climate_state_seat_heater_left": {
         "name": "Seat heater front left",
@@ -118,6 +119,17 @@
           "backup": "Backup",
           "self_consumption": "Self consumption"
         }
+      }
+    },
+    "lock": {
+      "charge_state_charge_port_latch": {
+        "name": "Charge cable lock"
+      },
+      "vehicle_state_locked": {
+        "name": "[%key:component::lock::title%]"
+      },
+      "vehicle_state_speed_limit_mode_active": {
+        "name": "Speed limit"
       }
     },
     "sensor": {
@@ -273,6 +285,11 @@
       "wall_connector_state": {
         "name": "State code"
       }
+    }
+  },
+  "exceptions": {
+    "no_cable": {
+      "message": "No charge cable connected"
     }
   }
 }
