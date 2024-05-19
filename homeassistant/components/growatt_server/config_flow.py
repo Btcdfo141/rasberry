@@ -42,7 +42,7 @@ class GrowattServerConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user", data_schema=data_schema, errors=errors
         )
 
-    async def async_step_user(self, user_input=None):
+    async def async_step_user(self, user_input=None) -> config_entries.ConfigFlowResult:
         """Handle the start of the config flow."""
         if not user_input:
             return self._async_show_user_form()
@@ -66,7 +66,7 @@ class GrowattServerConfigFlow(ConfigFlow, domain=DOMAIN):
         self.data = user_input
         return await self.async_step_plant()
 
-    async def async_step_plant(self, user_input=None):
+    async def async_step_plant(self, user_input=None) -> config_entries.ConfigFlowResult:
         """Handle adding a "plant" to Home Assistant."""
         plant_info = await self.hass.async_add_executor_job(
             self.api.plant_list, self.user_id
