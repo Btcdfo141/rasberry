@@ -19,20 +19,15 @@ from tests.common import MockConfigEntry, async_fire_time_changed
 @pytest.fixture
 def mock_entry():
     """Create hass config fixture."""
-    with patch(
-        "homeassistant.components.husqvarna_automower_ble.config_flow.Mower", MockMower
-    ):
-        return MockConfigEntry(
-            domain=DOMAIN, data={CONF_ADDRESS: AUTOMOWER_SERVICE_INFO.address}
-        )
+    return MockConfigEntry(
+        domain=DOMAIN, data={CONF_ADDRESS: AUTOMOWER_SERVICE_INFO.address}
+    )
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def mock_setup_entry() -> Generator[AsyncMock, None, None]:
     """Override async_setup_entry."""
     with patch(
-        "homeassistant.components.husqvarna_automower_ble.config_flow.Mower", MockMower
-    ) and patch(
         "homeassistant.components.husqvarna_automower_ble.async_setup_entry",
         return_value=True,
     ) as mock_setup_entry:

@@ -1,7 +1,5 @@
 """Test the Husqvarna Bluetooth config flow."""
 
-from unittest.mock import patch
-
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
@@ -15,20 +13,10 @@ from . import (
     AUTOMOWER_UNNAMED_SERVICE_INFO,
     AUTOMOWER_UNSUPPORTED_GROUP_SERVICE_INFO,
 )
-from .conftest import MockMower
 
 from tests.components.bluetooth import inject_bluetooth_service_info
 
 pytestmark = pytest.mark.usefixtures("mock_setup_entry")
-
-
-@pytest.fixture(name="automower_setup", autouse=True)
-def automower_setup_fixture():
-    """Mock hue entry setup."""
-    with patch(
-        "homeassistant.components.husqvarna_automower_ble.config_flow.Mower", MockMower
-    ):
-        yield
 
 
 async def test_user_selection(
