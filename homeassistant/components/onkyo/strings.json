@@ -1,0 +1,58 @@
+{
+  "config": {
+    "flow_title": "{name} ({host})",
+    "step": {
+      "user": {
+        "data": {
+          "host": "[%key:common::config_flow::data::ip%]"
+        },
+        "description": "If you leave the IP Address empty, discovery will be used to find devices."
+      }
+    },
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "no_ip": "Not a valid IP address.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "no_devices_found": "[%key:common::config_flow::abort::no_devices_found%]"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "maximum_volume": "Maximum volume limit (%)",
+          "receiver_max_volume": "Receiver maximum volume (usually 80 for older models, 200 for current)",
+          "sources": "List of input sources this receiver supports (eiscp argument: display value)"
+        }
+      }
+    },
+    "error": {
+      "invalid_sources": "Sources should be a list of key: value pairs."
+    }
+  },
+  "services": {
+    "onkyo_select_hdmi_output": {
+      "name": "Onkyo Select HDMI output",
+      "description": "Change to the specified HDMI output on the selected receiver.",
+      "fields": {
+        "hdmi_output": {
+          "name": "HDMI Output",
+          "description": "The HDMI output to use."
+        }
+      }
+    }
+  },
+  "issues": {
+    "deprecated_yaml_import_issue_cannot_connect": {
+      "title": "The Onkyo YAML configuration import failed",
+      "description": "Configuring Onkyo using YAML is being removed but there was a connection error importing your YAML configuration.\n\nEnsure the connection to the receiver works and restart Home Assistant to try again or remove the Onkyo YAML configuration from your configuration.yaml file and continue to [set up the integration]({url}) manually."
+    },
+    "deprecated_yaml_import_issue_unknown": {
+      "title": "The Onkyo YAML configuration import failed",
+      "description": "Configuring Onkyo using YAML is being removed but there was an unknown error when trying to import the YAML configuration.\n\nEnsure the imported configuration is correct and remove the Onkyo YAML configuration from your configuration.yaml file and continue to [set up the integration]({url}) manually."
+    }
+  }
+}
