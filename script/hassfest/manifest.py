@@ -122,7 +122,6 @@ NO_DIAGNOSTICS = [
     "geonetnz_quakes",
     "google_assistant_sdk",
     "hyperion",
-    "modbus",
     "nightscout",
     "point",
     "pvpc_hourly_pricing",
