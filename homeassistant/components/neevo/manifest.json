@@ -1,0 +1,9 @@
+{
+  "domain": "neevo",
+  "name": "OTODATA Nee-Vo Tank Monitoring",
+  "codeowners": ["@davidflypei"],
+  "config_flow": true,
+  "documentation": "https://www.home-assistant.io/integrations/neevo",
+  "iot_class": "cloud_polling",
+  "requirements": ["pyneevo==1.0.4"]
+}
