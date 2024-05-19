@@ -120,6 +120,11 @@
         }
       }
     },
+    "media_player": {
+      "media": {
+        "name": "Media player"
+      }
+    },
     "sensor": {
       "battery_power": {
         "name": "Battery power"
