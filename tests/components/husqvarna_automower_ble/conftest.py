@@ -3,6 +3,7 @@
 from collections.abc import Awaitable, Callable, Generator
 from unittest.mock import AsyncMock, patch
 
+from automower_ble.mower import Mower
 from freezegun.api import FrozenDateTimeFactory
 import pytest
 
@@ -93,10 +94,29 @@ class MockMower:
 
 
 @pytest.fixture(autouse=True)
-def mock_bluetooth(enable_bluetooth):
+def mock_client(enable_bluetooth: None, scan_step) -> None:
     """Auto mock bluetooth."""
 
-    with patch(
-        "homeassistant.components.husqvarna_automower_ble.config_flow.Mower", MockMower
-    ) and patch("homeassistant.components.husqvarna_automower_ble.Mower", MockMower):
-        yield
+    mower = AsyncMock(Mower)
+
+    async def _connect(*args, **kwargs) -> bool:
+        """Mock BleakClient.connect."""
+        return True
+
+    async def _probe_gatts(*args, **kwargs):
+        """Mock BleakClient.probe_gatts."""
+        return ("Husqvarna", "Automower", "305")
+
+    mower.connect.side_effect = _connect
+    mower.probe_gatts.side_effect = _probe_gatts
+
+    with (
+        patch(
+            "homeassistant.components.husqvarna_automower_ble.config_flow.Mower",
+            return_value=mower,
+        ),
+        patch(
+            "homeassistant.components.husqvarna_automower_ble.Mower", return_value=mower
+        ),
+    ):
+        yield mower

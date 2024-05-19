@@ -10,9 +10,7 @@ from homeassistant.components.lawn_mower import (
     LawnMowerEntity,
     LawnMowerEntityFeature,
 )
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -36,16 +34,11 @@ async def async_setup_entry(
         [
             AutomowerLawnMower(
                 coordinator,
-                "automower" + model + "_" + address,
+                "automower" + str(model) + "_" + str(address),
                 model,
                 LawnMowerEntityFeature.PAUSE
                 | LawnMowerEntityFeature.START_MOWING
                 | LawnMowerEntityFeature.DOCK,
-            ),
-            BatterySensor(
-                coordinator,
-                "automower" + model + "_" + address + "_battery_level",
-                "Battery Level",
             ),
         ]
     )
@@ -160,31 +153,4 @@ class AutomowerLawnMower(HusqvarnaAutomowerBleEntity, LawnMowerEntity):
         await self.coordinator.async_request_refresh()
 
         self._attr_activity = self._get_activity()
-        self.async_write_ha_state()
-
-
-class BatterySensor(HusqvarnaAutomowerBleEntity, SensorEntity):
-    """Husqvarna Automower Battery Status."""
-
-    _attr_device_class = SensorDeviceClass.BATTERY
-    _attr_native_unit_of_measurement = PERCENTAGE
-
-    def __init__(
-        self,
-        coordinator: HusqvarnaCoordinator,
-        unique_id: str,
-        name: str,
-    ) -> None:
-        """Initialize the lawn mower."""
-        super().__init__(coordinator)
-        self._attr_name = name
-        self._attr_unique_id = unique_id
-
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        """Handle updated data from the coordinator."""
-        _LOGGER.debug("BatterySensor: _handle_coordinator_update")
-
-        self._attr_native_value = int(self.coordinator.data["battery_level"])
-        self._attr_available = self._attr_native_value is not None
         self.async_write_ha_state()
