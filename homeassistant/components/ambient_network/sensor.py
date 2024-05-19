@@ -292,6 +292,11 @@ async def async_setup_entry(
 class AmbientNetworkSensor(AmbientNetworkEntity, SensorEntity):
     """A sensor implementation for an Ambient Weather Network sensor."""
 
+    # We want to be able to distinguish between entities that have been
+    # updated but whose value has not changed, and entities that have not
+    # been updated and whose values are potentially stale.
+    _attr_force_update = True
+
     def __init__(
         self,
         coordinator: AmbientNetworkDataUpdateCoordinator,

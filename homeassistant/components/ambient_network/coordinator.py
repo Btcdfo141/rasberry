@@ -29,6 +29,9 @@ class AmbientNetworkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]])
         """Initialize the coordinator."""
         super().__init__(hass, LOGGER, name=DOMAIN, update_interval=SCAN_INTERVAL)
         self.api = api
+        # We don't want to update the weather data if the underlying station data
+        # has not been updated.
+        self.always_update = False
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch the latest data from the Ambient Network."""
@@ -47,19 +50,9 @@ class AmbientNetworkDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]])
                 f"Station '{self.config_entry.title}' did not report any data"
             )
 
-        # Eliminate data if the station hasn't been updated for a while.
-        if (created_at := last_data.get("created_at")) is None:
-            raise UpdateFailed(
-                f"Station '{self.config_entry.title}' did not report a time stamp"
-            )
-
-        # Eliminate data that has been generated more than an hour ago. The station is
-        # probably offline.
-        if int(created_at / 1000) < int(
-            (datetime.now() - timedelta(hours=1)).timestamp()
-        ):
-            raise UpdateFailed(
-                f"Station '{self.config_entry.title}' reported stale data"
-            )
+        if last_data.get("created_at") is None:
+            # Some stations do not report a timestamp.
+            # See https://github.com/home-assistant/core/issues/116917
+            last_data["created_at"] = datetime.now().timestamp() * 1000
 
         return cast(dict[str, Any], last_data)
